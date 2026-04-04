@@ -42,9 +42,12 @@ export default async function ProjectPrivacyPolicy({ params }: PageProps) {
               <Shield className="w-3.5 h-3.5" />
               <span>Legal Compliance</span>
             </div>
-            <h1 className="text-4xl md:text-5xl font-bold text-foreground mb-4">
+            <h1 className="text-4xl md:text-5xl font-bold text-foreground mb-2">
               Privacy Policy for <span className="text-primary">{project.name}</span>
             </h1>
+            <p className="text-lg font-medium text-foreground/80 mb-4">
+              A unit of Diin Technology
+            </p>
             <p className="text-muted-foreground">
               Last Updated: <span className="text-foreground/80 font-medium">{project.lastUpdated}</span>
             </p>

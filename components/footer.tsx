@@ -95,7 +95,7 @@ export function Footer() {
           </div>
 
           {/* Company */}
-          <div>
+          <div className="lg:col-span-1">
             <h4 className="font-semibold text-foreground mb-4">Company</h4>
             <ul className="space-y-3">
               {footerLinks.company.map((link, index) => (
@@ -105,20 +105,11 @@ export function Footer() {
                   </a>
                 </li>
               ))}
-            </ul>
-          </div>
-
-          {/* Projects */}
-          <div>
-            <h4 className="font-semibold text-foreground mb-4">Projects</h4>
-            <ul className="space-y-3">
-              {PROJECTS.map((project) => (
-                <li key={project.slug}>
-                  <Link href={`/projects/${project.slug}/privacy-policy`} className="text-muted-foreground hover:text-foreground transition-colors">
-                    {project.name}
-                  </Link>
-                </li>
-              ))}
+              <li>
+                <Link href="/projects" className="text-muted-foreground hover:text-foreground transition-colors">
+                  Projects
+                </Link>
+              </li>
             </ul>
           </div>
 
