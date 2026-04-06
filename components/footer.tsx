@@ -7,21 +7,21 @@ import { PROJECTS } from "@/lib/projects-data"
 
 const footerLinks = {
   solutions: [
-    { label: "AI Sales Agents", href: "#solutions" },
-    { label: "AI Support Agents", href: "#solutions" },
-    { label: "AI Operations Agents", href: "#solutions" },
-    { label: "Custom Enterprise AI", href: "#solutions" },
+    { label: "AI Sales Agents", href: "/#solutions" },
+    { label: "AI Support Agents", href: "/#solutions" },
+    { label: "AI Operations Agents", href: "/#solutions" },
+    { label: "Custom Enterprise AI", href: "/#solutions" },
   ],
   company: [
-    { label: "About Us", href: "#about" },
-    { label: "Technology", href: "#technology" },
-    { label: "Industries", href: "#industries" },
-    { label: "Why Diin", href: "#why-diin" },
+    { label: "About Us", href: "/#about" },
+    { label: "Technology", href: "/#technology" },
+    { label: "Industries", href: "/#industries" },
+    { label: "Why Diin", href: "/#why-diin" },
   ],
   legal: [
-    { label: "Privacy Policy", href: "#" },
-    { label: "Terms of Service", href: "#" },
-    { label: "Security", href: "#" },
+    { label: "Privacy Policy", href: "/#legal" },
+    { label: "Terms of Service", href: "/#legal" },
+    { label: "Security", href: "/#legal" },
   ],
 }
 

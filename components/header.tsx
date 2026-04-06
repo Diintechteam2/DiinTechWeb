@@ -19,18 +19,18 @@ const solutions = [
   {
     title: "AI Sales Agents",
     description: "Autonomous lead qualification and revenue optimization",
-    href: "#solutions",
+    href: "/#solutions",
   },
-  { title: "AI Support Agents", description: "24×7 intelligent customer support", href: "#solutions" },
-  { title: "AI Operations Agents", description: "Workflow orchestration and automation", href: "#solutions" },
-  { title: "AI Knowledge & RAG", description: "Enterprise knowledge systems", href: "#solutions" },
+  { title: "AI Support Agents", description: "24×7 intelligent customer support", href: "/#solutions" },
+  { title: "AI Operations Agents", description: "Workflow orchestration and automation", href: "/#solutions" },
+  { title: "AI Knowledge & RAG", description: "Enterprise knowledge systems", href: "/#solutions" },
 ]
 
 const industries = [
-  { title: "Education & EdTech", href: "#industries" },
-  { title: "BFSI & FinTech", href: "#industries" },
-  { title: "Healthcare", href: "#industries" },
-  { title: "BPO & Call Centers", href: "#industries" },
+  { title: "Education & EdTech", href: "/#industries" },
+  { title: "BFSI & FinTech", href: "/#industries" },
+  { title: "Healthcare", href: "/#industries" },
+  { title: "BPO & Call Centers", href: "/#industries" },
 ]
 
 export function Header() {
@@ -82,7 +82,7 @@ export function Header() {
             <NavigationMenuList className="gap-1">
               <NavigationMenuItem>
                 <NavigationMenuLink asChild>
-                  <Link href="#about" className="px-4 py-2 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">
+                  <Link href="/#about" className="px-4 py-2 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">
                     About
                   </Link>
                 </NavigationMenuLink>
@@ -137,7 +137,7 @@ export function Header() {
 
               <NavigationMenuItem>
                 <NavigationMenuLink asChild>
-                  <Link href="#technology" className="px-4 py-2 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">
+                  <Link href="/#technology" className="px-4 py-2 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">
                     Technology
                   </Link>
                 </NavigationMenuLink>
@@ -145,7 +145,7 @@ export function Header() {
 
               <NavigationMenuItem>
                 <NavigationMenuLink asChild>
-                  <Link href="#why-diin" className="px-4 py-2 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">
+                  <Link href="/#why-diin" className="px-4 py-2 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">
                     Why Diin
                   </Link>
                 </NavigationMenuLink>
@@ -178,19 +178,19 @@ export function Header() {
       {mobileMenuOpen && (
         <div className="lg:hidden bg-background/95 backdrop-blur-xl border-b border-border">
           <nav className="container mx-auto px-4 py-6 space-y-4">
-            <a href="#about" className="block py-2 text-foreground font-medium">
+            <a href="/#about" className="block py-2 text-foreground font-medium">
               About
             </a>
-            <a href="#solutions" className="block py-2 text-foreground font-medium">
+            <a href="/#solutions" className="block py-2 text-foreground font-medium">
               Solutions
             </a>
-            <a href="#industries" className="block py-2 text-foreground font-medium">
+            <a href="/#industries" className="block py-2 text-foreground font-medium">
               Industries
             </a>
-            <a href="#technology" className="block py-2 text-foreground font-medium">
+            <a href="/#technology" className="block py-2 text-foreground font-medium">
               Technology
             </a>
-            <a href="#why-diin" className="block py-2 text-foreground font-medium">
+            <a href="/#why-diin" className="block py-2 text-foreground font-medium">
               Why Diin
             </a>
             <div className="pt-4 space-y-3">
