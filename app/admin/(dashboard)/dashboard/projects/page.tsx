@@ -1,0 +1,879 @@
+"use client";
+
+import React, { useEffect, useState } from 'react';
+import api from '@/admin_lib/api';
+import {
+  Plus,
+  Search,
+  ExternalLink,
+  Edit3,
+  Trash2,
+  Calendar,
+  Briefcase,
+  X,
+  Sparkles,
+  Loader2
+} from 'lucide-react';
+
+const parseLines = (value: string) =>
+  value
+    .split('\n')
+    .map((item) => item.trim())
+    .filter(Boolean);
+
+const ensureString = (value: unknown) => (typeof value === 'string' ? value : '');
+
+const ensureStringArray = (value: unknown): string[] => {
+  if (Array.isArray(value)) {
+    return value
+      .map((item) => (typeof item === 'string' ? item.trim() : ''))
+      .filter(Boolean);
+  }
+
+  if (typeof value === 'string') {
+    return parseLines(value.replace(/\r\n/g, '\n'));
+  }
+
+  return [];
+};
+
+const defaultProject = {
+  name: '',
+  slug: '',
+  websiteUrl: '',
+  logoUrl: '',
+  lastUpdated: '',
+  content: {
+    introduction: '',
+    informationCollect: {
+      personal: [] as string[],
+      userContent: [] as string[],
+      deviceUsage: [] as string[]
+    },
+    howWeUse: [] as string[],
+    dataSharing: [] as string[],
+    dataSecurity: '',
+    dataRetention: '',
+    dataDeletion: { instruction: '', email: '', subject: '' },
+    childrenPrivacy: '',
+    thirdParty: '',
+    changesToPolicy: '',
+    imageProcessing: '',
+    disclaimer: '',
+    contactUs: { instruction: '', email: '' }
+  }
+};
+
+type ProjectForm = typeof defaultProject;
+type ProjectRecord = ProjectForm & { _id?: string };
+
+const defaultPromptInputs = {
+  projectDescription: '',
+  targetUsers: '',
+  coreFeatures: '',
+  dataCollected: '',
+  thirdPartyServices: '',
+  contactEmail: '',
+  additionalNotes: '',
+  hasAuthentication: false,
+  hasUploads: false,
+  usesAI: false,
+  hasPayments: false
+};
+
+type PromptInputs = typeof defaultPromptInputs;
+
+export default function ProjectsPage() {
+  const [projects, setProjects] = useState<ProjectRecord[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [currentProject, setCurrentProject] = useState<ProjectRecord | null>(null);
+  const [formData, setFormData] = useState<ProjectForm>(defaultProject);
+  const [promptInputs, setPromptInputs] = useState<PromptInputs>(defaultPromptInputs);
+  const [isGeneratingDraft, setIsGeneratingDraft] = useState(false);
+
+  const fetchProjects = async () => {
+    try {
+      const response = await api.get('projects');
+      setProjects(response.data.data || []);
+    } catch (err) {
+      console.error('Failed to fetch projects', err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchProjects();
+  }, []);
+
+  const handleEdit = (project: ProjectRecord) => {
+    setCurrentProject(project);
+    setFormData({
+      ...defaultProject,
+      ...project,
+      content: {
+        ...defaultProject.content,
+        ...(project.content || {}),
+        informationCollect: {
+          ...defaultProject.content.informationCollect,
+          ...(project.content?.informationCollect || {}),
+          personal: ensureStringArray(project.content?.informationCollect?.personal),
+          userContent: ensureStringArray(project.content?.informationCollect?.userContent),
+          deviceUsage: ensureStringArray(project.content?.informationCollect?.deviceUsage)
+        },
+        dataDeletion: {
+          ...defaultProject.content.dataDeletion,
+          ...(project.content?.dataDeletion || {}),
+          instruction: ensureString(project.content?.dataDeletion?.instruction),
+          email: ensureString(project.content?.dataDeletion?.email),
+          subject: ensureString(project.content?.dataDeletion?.subject)
+        },
+        contactUs: {
+          ...defaultProject.content.contactUs,
+          ...(project.content?.contactUs || {}),
+          instruction: ensureString(project.content?.contactUs?.instruction),
+          email: ensureString(project.content?.contactUs?.email)
+        },
+        introduction: ensureString(project.content?.introduction),
+        howWeUse: ensureStringArray(project.content?.howWeUse),
+        dataSharing: ensureStringArray(project.content?.dataSharing),
+        dataSecurity: ensureString(project.content?.dataSecurity),
+        dataRetention: ensureString(project.content?.dataRetention),
+        childrenPrivacy: ensureString(project.content?.childrenPrivacy),
+        thirdParty: ensureString(project.content?.thirdParty),
+        changesToPolicy: ensureString(project.content?.changesToPolicy),
+        imageProcessing: ensureString(project.content?.imageProcessing),
+        disclaimer: ensureString(project.content?.disclaimer)
+      }
+    });
+    setPromptInputs({
+      ...defaultPromptInputs,
+      contactEmail:
+        project.content?.contactUs?.email ||
+        project.content?.dataDeletion?.email ||
+        ''
+    });
+    setIsModalOpen(true);
+  };
+
+  const handleDelete = async (id: string) => {
+    if (!window.confirm('Are you sure you want to delete this project?')) return;
+
+    try {
+      await api.delete(`projects/${id}`);
+      fetchProjects();
+    } catch {
+      alert('Failed to delete project');
+    }
+  };
+
+  const handleSave = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      if (currentProject) {
+        await api.put(`projects/${currentProject._id!}`, formData);
+      } else {
+        await api.post('projects', formData);
+      }
+
+      setIsModalOpen(false);
+      setCurrentProject(null);
+      setFormData(defaultProject);
+      fetchProjects();
+    } catch (err: unknown) {
+      const message =
+        typeof err === 'object' &&
+        err !== null &&
+        'response' in err &&
+        typeof (err as { response?: { data?: { message?: string } } }).response?.data?.message === 'string'
+          ? (err as { response?: { data?: { message?: string } } }).response?.data?.message
+          : 'Failed to save project';
+      alert(message);
+    }
+  };
+
+  const handleGenerateDraft = async () => {
+    if (!formData.name.trim()) {
+      alert('Project name required hai AI draft generate karne ke liye.');
+      return;
+    }
+
+    if (!formData.websiteUrl.trim()) {
+      alert('Website URL required hai AI draft generate karne ke liye.');
+      return;
+    }
+
+    setIsGeneratingDraft(true);
+
+    try {
+      const response = await api.post('projects/generate-privacy-draft', {
+        projectName: formData.name,
+        websiteUrl: formData.websiteUrl,
+        promptInputs
+      });
+
+      const generatedContent = response.data?.data?.content;
+
+      if (!generatedContent) {
+        throw new Error('AI response me draft content nahi mila');
+      }
+
+      setFormData((prev) => ({
+        ...prev,
+        lastUpdated: prev.lastUpdated || new Date().toLocaleDateString(),
+        content: {
+          ...prev.content,
+          introduction: ensureString(generatedContent.introduction),
+          informationCollect: {
+            personal: ensureStringArray(generatedContent.informationCollect?.personal),
+            userContent: ensureStringArray(generatedContent.informationCollect?.userContent),
+            deviceUsage: ensureStringArray(generatedContent.informationCollect?.deviceUsage)
+          },
+          howWeUse: ensureStringArray(generatedContent.howWeUse),
+          dataSharing: ensureStringArray(generatedContent.dataSharing),
+          dataSecurity: ensureString(generatedContent.dataSecurity),
+          dataRetention: ensureString(generatedContent.dataRetention),
+          dataDeletion: {
+            instruction: ensureString(generatedContent.dataDeletion?.instruction),
+            email: ensureString(generatedContent.dataDeletion?.email) || promptInputs.contactEmail || '',
+            subject: ensureString(generatedContent.dataDeletion?.subject)
+          },
+          childrenPrivacy: ensureString(generatedContent.childrenPrivacy),
+          thirdParty: ensureString(generatedContent.thirdParty),
+          changesToPolicy: ensureString(generatedContent.changesToPolicy),
+          imageProcessing: ensureString(generatedContent.imageProcessing),
+          disclaimer: ensureString(generatedContent.disclaimer),
+          contactUs: {
+            instruction: ensureString(generatedContent.contactUs?.instruction),
+            email: ensureString(generatedContent.contactUs?.email) || promptInputs.contactEmail || ''
+          }
+        }
+      }));
+
+      if (promptInputs.contactEmail) {
+        setPromptInputs((prev) => ({ ...prev }));
+      }
+    } catch (err: unknown) {
+      const message =
+        typeof err === 'object' &&
+        err !== null &&
+        'response' in err &&
+        typeof (err as { response?: { data?: { message?: string } } }).response?.data?.message === 'string'
+          ? (err as { response?: { data?: { message?: string } } }).response?.data?.message
+          : err instanceof Error
+            ? err.message
+            : 'Failed to generate AI draft';
+      alert(message);
+    } finally {
+      setIsGeneratingDraft(false);
+    }
+  };
+
+  const filteredProjects = projects.filter((project) =>
+    project.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    project.slug.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
+  if (loading) return <div className="text-white p-8 font-bold">Loading Projects...</div>;
+
+  const modalTextareaClass =
+    "w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white overflow-auto scrollbar-hide";
+
+  const renderProjectLogo = (project: ProjectRecord) => {
+    if (project.logoUrl) {
+      return (
+        <img
+          src={project.logoUrl}
+          alt={`${project.name} logo`}
+          className="w-12 h-12 rounded-2xl object-cover border border-blue-500/20 bg-white/5"
+        />
+      );
+    }
+
+    return (
+      <div className="w-12 h-12 bg-blue-600/20 rounded-2xl flex items-center justify-center border border-blue-500/20">
+        <Briefcase className="w-6 h-6 text-blue-500" />
+      </div>
+    );
+  };
+
+  return (
+    <div className="space-y-8">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <h1 className="text-3xl font-bold text-white mb-2">Projects</h1>
+          <p className="text-gray-400">Manage every privacy-policy field that exists in the frontend data file.</p>
+        </div>
+        <button
+          onClick={() => {
+            setCurrentProject(null);
+            setFormData(defaultProject);
+            setPromptInputs(defaultPromptInputs);
+            setIsModalOpen(true);
+          }}
+          className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-xl font-semibold flex items-center gap-2 transition-all"
+        >
+          <Plus className="w-5 h-5" /> Add Project
+        </button>
+      </div>
+
+      <div className="flex items-center gap-4 bg-white/5 border border-white/10 p-4 rounded-2xl">
+        <div className="relative flex-1">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-500" />
+          <input
+            type="text"
+            placeholder="Search by name or slug..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="w-full bg-transparent border-none focus:ring-0 text-white pl-11 text-sm placeholder:text-gray-600"
+          />
+        </div>
+      </div>
+
+      {filteredProjects.length === 0 ? (
+        <div className="text-center py-16 bg-white/5 border border-dashed border-white/20 rounded-3xl">
+          <Search className="w-10 h-10 text-white/20 mx-auto mb-4" />
+          <p className="text-gray-400">No projects found.</p>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {filteredProjects.map((project) => (
+            <div key={project._id} className="group bg-white/5 border border-white/10 rounded-3xl p-6 hover:bg-white/[0.08] transition-all">
+              <div className="flex justify-between items-start mb-6">
+                {renderProjectLogo(project)}
+                <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                  <button onClick={() => handleEdit(project)} className="p-2 hover:bg-white/10 rounded-lg text-gray-400 hover:text-white">
+                    <Edit3 className="w-4 h-4" />
+                  </button>
+                  <button onClick={() => handleDelete(project._id!)} className="p-2 hover:bg-red-500/10 rounded-lg text-gray-400 hover:text-red-500">
+                    <Trash2 className="w-4 h-4" />
+                  </button>
+                </div>
+              </div>
+
+              <h3 className="text-xl font-bold text-white mb-1">{project.name}</h3>
+              <p className="text-sm text-gray-400 mb-4 font-mono">/{project.slug}</p>
+              <p className="text-sm text-gray-500 line-clamp-3 min-h-[72px]">{project.content?.introduction}</p>
+
+              <div className="mt-6 pt-4 border-t border-white/5 space-y-2 text-xs">
+                <div className="flex items-center gap-2 text-gray-500">
+                  <Calendar className="w-3.5 h-3.5" />
+                  <span>{project.lastUpdated || 'No date set'}</span>
+                </div>
+                <div className="flex items-center gap-2 text-blue-400">
+                  <ExternalLink className="w-3.5 h-3.5" />
+                  <span className="truncate">{project.websiteUrl || 'No website set'}</span>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {isModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
+          <div className="bg-[#0f1115] border border-white/10 rounded-3xl w-full max-w-6xl max-h-[92vh] overflow-y-auto shadow-2xl">
+            <div className="p-8 border-b border-white/10 flex justify-between items-center sticky top-0 bg-[#0f1115] z-10">
+              <div>
+                <h2 className="text-2xl font-bold text-white">{currentProject ? 'Edit Project' : 'Add Project'}</h2>
+                <p className="text-sm text-gray-400">All privacy-policy fields are editable from here.</p>
+              </div>
+              <button onClick={() => setIsModalOpen(false)} className="p-2 hover:bg-white/5 rounded-xl text-gray-400 hover:text-white">
+                <X className="w-6 h-6" />
+              </button>
+            </div>
+
+            <form onSubmit={handleSave} className="p-8 space-y-8 text-left">
+              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-5 gap-6">
+                <label className="space-y-2 block">
+                  <span className="text-sm font-semibold text-gray-300">Project Name</span>
+                  <input
+                    required
+                    value={formData.name}
+                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                    className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white"
+                  />
+                </label>
+                <label className="space-y-2 block">
+                  <span className="text-sm font-semibold text-gray-300">Slug</span>
+                  <input
+                    required
+                    value={formData.slug}
+                    onChange={(e) => setFormData({ ...formData, slug: e.target.value })}
+                    className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white"
+                  />
+                </label>
+                <label className="space-y-2 block">
+                  <span className="text-sm font-semibold text-gray-300">Website URL</span>
+                  <input
+                    value={formData.websiteUrl}
+                    onChange={(e) => setFormData({ ...formData, websiteUrl: e.target.value })}
+                    className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white"
+                  />
+                </label>
+                <label className="space-y-2 block">
+                  <span className="text-sm font-semibold text-gray-300">Logo URL / Path</span>
+                  <input
+                    value={formData.logoUrl}
+                    onChange={(e) => setFormData({ ...formData, logoUrl: e.target.value })}
+                    placeholder="/placeholder-logo.svg or https://..."
+                    className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder:text-gray-500"
+                  />
+                </label>
+                <label className="space-y-2 block">
+                  <span className="text-sm font-semibold text-gray-300">Last Updated</span>
+                  <input
+                    value={formData.lastUpdated}
+                    onChange={(e) => setFormData({ ...formData, lastUpdated: e.target.value })}
+                    className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white"
+                  />
+                </label>
+              </div>
+
+              <div className="rounded-2xl border border-blue-500/20 bg-blue-500/[0.06] p-5 space-y-5">
+                <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+                  <div>
+                    <h3 className="text-lg font-bold text-white flex items-center gap-2">
+                      <Sparkles className="w-5 h-5 text-blue-400" />
+                      AI Privacy Draft Generator
+                    </h3>
+                    <p className="text-sm text-gray-400">
+                      Project name aur URL ke saath niche ka context do. Draft generate hoke niche wale privacy fields fill ho jayenge.
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={handleGenerateDraft}
+                    disabled={isGeneratingDraft}
+                    className="inline-flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-60 disabled:cursor-not-allowed text-white px-5 py-3 rounded-xl font-semibold"
+                  >
+                    {isGeneratingDraft ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
+                    {isGeneratingDraft ? 'Generating Draft...' : 'Generate AI Draft'}
+                  </button>
+                </div>
+
+                <div className="grid grid-cols-1 xl:grid-cols-2 gap-5">
+                  <label className="space-y-2 block">
+                    <span className="text-sm font-semibold text-gray-300">Project Description</span>
+                    <textarea
+                      rows={3}
+                      value={promptInputs.projectDescription}
+                      onChange={(e) => setPromptInputs({ ...promptInputs, projectDescription: e.target.value })}
+                      className={modalTextareaClass}
+                      placeholder="Project/app kya karta hai?"
+                    />
+                  </label>
+                  <label className="space-y-2 block">
+                    <span className="text-sm font-semibold text-gray-300">Target Users</span>
+                    <textarea
+                      rows={3}
+                      value={promptInputs.targetUsers}
+                      onChange={(e) => setPromptInputs({ ...promptInputs, targetUsers: e.target.value })}
+                      className={modalTextareaClass}
+                      placeholder="Kis type ke users is app ko use karte hain?"
+                    />
+                  </label>
+                  <label className="space-y-2 block">
+                    <span className="text-sm font-semibold text-gray-300">Core Features</span>
+                    <textarea
+                      rows={3}
+                      value={promptInputs.coreFeatures}
+                      onChange={(e) => setPromptInputs({ ...promptInputs, coreFeatures: e.target.value })}
+                      className={modalTextareaClass}
+                      placeholder="Main features ya workflows"
+                    />
+                  </label>
+                  <label className="space-y-2 block">
+                    <span className="text-sm font-semibold text-gray-300">Data Collected</span>
+                    <textarea
+                      rows={3}
+                      value={promptInputs.dataCollected}
+                      onChange={(e) => setPromptInputs({ ...promptInputs, dataCollected: e.target.value })}
+                      className={modalTextareaClass}
+                      placeholder="Email, phone, images, prompts, payment data, analytics..."
+                    />
+                  </label>
+                  <label className="space-y-2 block">
+                    <span className="text-sm font-semibold text-gray-300">Third-Party Services</span>
+                    <textarea
+                      rows={3}
+                      value={promptInputs.thirdPartyServices}
+                      onChange={(e) => setPromptInputs({ ...promptInputs, thirdPartyServices: e.target.value })}
+                      className={modalTextareaClass}
+                      placeholder="Google Analytics, Razorpay, Firebase, Cloudinary, OpenAI, etc."
+                    />
+                  </label>
+                  <label className="space-y-2 block">
+                    <span className="text-sm font-semibold text-gray-300">Contact Email</span>
+                    <input
+                      value={promptInputs.contactEmail}
+                      onChange={(e) => setPromptInputs({ ...promptInputs, contactEmail: e.target.value })}
+                      className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white"
+                      placeholder="privacy@yourdomain.com"
+                    />
+                  </label>
+                  <label className="space-y-2 block xl:col-span-2">
+                    <span className="text-sm font-semibold text-gray-300">Additional Notes</span>
+                    <textarea
+                      rows={3}
+                      value={promptInputs.additionalNotes}
+                      onChange={(e) => setPromptInputs({ ...promptInputs, additionalNotes: e.target.value })}
+                      className={modalTextareaClass}
+                      placeholder="Koi specific legal/business note jo draft me include karna ho"
+                    />
+                  </label>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3">
+                  {[
+                    { key: 'hasAuthentication', label: 'Login / Signup hai' },
+                    { key: 'hasUploads', label: 'Image / File upload hai' },
+                    { key: 'usesAI', label: 'AI output generate hota hai' },
+                    { key: 'hasPayments', label: 'Payment / Subscription hai' }
+                  ].map((item) => (
+                    <label
+                      key={item.key}
+                      className="flex items-center gap-3 rounded-xl border border-white/10 bg-white/[0.03] px-4 py-3 cursor-pointer"
+                    >
+                      <input
+                        type="checkbox"
+                        checked={promptInputs[item.key as keyof PromptInputs] as boolean}
+                        onChange={(e) =>
+                          setPromptInputs({
+                            ...promptInputs,
+                            [item.key]: e.target.checked
+                          })
+                        }
+                        className="h-4 w-4 rounded border-white/20 bg-transparent"
+                      />
+                      <span className="text-sm text-gray-300">{item.label}</span>
+                    </label>
+                  ))}
+                </div>
+              </div>
+
+              <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-4">
+                <p className="text-sm font-semibold text-gray-300 mb-3">Logo Preview</p>
+                <div className="flex items-center gap-4">
+                  {renderProjectLogo({
+                    ...formData,
+                    _id: currentProject?._id
+                  })}
+                  <div className="text-sm text-gray-400">
+                    {formData.logoUrl
+                      ? 'Card par ye logo show hoga.'
+                      : 'Agar logo URL/path empty rahega to default icon show hoga.'}
+                  </div>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 xl:grid-cols-2 gap-8">
+                <label className="space-y-2 block xl:col-span-2">
+                  <span className="text-sm font-semibold text-gray-300">Introduction</span>
+                  <textarea
+                    rows={4}
+                    value={formData.content.introduction}
+                    onChange={(e) =>
+                      setFormData({
+                        ...formData,
+                        content: { ...formData.content, introduction: e.target.value }
+                      })
+                    }
+                    className={modalTextareaClass}
+                  />
+                </label>
+
+                <label className="space-y-2 block">
+                  <span className="text-sm font-semibold text-gray-300">Personal Info List</span>
+                  <textarea
+                    rows={5}
+                    value={ensureStringArray(formData.content.informationCollect.personal).join('\n')}
+                    onChange={(e) =>
+                      setFormData({
+                        ...formData,
+                        content: {
+                          ...formData.content,
+                          informationCollect: {
+                            ...formData.content.informationCollect,
+                            personal: parseLines(e.target.value)
+                          }
+                        }
+                      })
+                    }
+                    className={modalTextareaClass}
+                  />
+                </label>
+                <label className="space-y-2 block">
+                  <span className="text-sm font-semibold text-gray-300">User Content List</span>
+                  <textarea
+                    rows={5}
+                    value={ensureStringArray(formData.content.informationCollect.userContent).join('\n')}
+                    onChange={(e) =>
+                      setFormData({
+                        ...formData,
+                        content: {
+                          ...formData.content,
+                          informationCollect: {
+                            ...formData.content.informationCollect,
+                            userContent: parseLines(e.target.value)
+                          }
+                        }
+                      })
+                    }
+                    className={modalTextareaClass}
+                  />
+                </label>
+                <label className="space-y-2 block">
+                  <span className="text-sm font-semibold text-gray-300">Device & Usage List</span>
+                  <textarea
+                    rows={5}
+                    value={ensureStringArray(formData.content.informationCollect.deviceUsage).join('\n')}
+                    onChange={(e) =>
+                      setFormData({
+                        ...formData,
+                        content: {
+                          ...formData.content,
+                          informationCollect: {
+                            ...formData.content.informationCollect,
+                            deviceUsage: parseLines(e.target.value)
+                          }
+                        }
+                      })
+                    }
+                    className={modalTextareaClass}
+                  />
+                </label>
+                <label className="space-y-2 block">
+                  <span className="text-sm font-semibold text-gray-300">How We Use</span>
+                  <textarea
+                    rows={5}
+                    value={ensureStringArray(formData.content.howWeUse).join('\n')}
+                    onChange={(e) =>
+                      setFormData({
+                        ...formData,
+                        content: { ...formData.content, howWeUse: parseLines(e.target.value) }
+                      })
+                    }
+                    className={modalTextareaClass}
+                  />
+                </label>
+                <label className="space-y-2 block xl:col-span-2">
+                  <span className="text-sm font-semibold text-gray-300">Data Sharing</span>
+                  <textarea
+                    rows={4}
+                    value={ensureStringArray(formData.content.dataSharing).join('\n')}
+                    onChange={(e) =>
+                      setFormData({
+                        ...formData,
+                        content: { ...formData.content, dataSharing: parseLines(e.target.value) }
+                      })
+                    }
+                    className={modalTextareaClass}
+                  />
+                </label>
+                <label className="space-y-2 block">
+                  <span className="text-sm font-semibold text-gray-300">Data Security</span>
+                  <textarea
+                    rows={4}
+                    value={formData.content.dataSecurity}
+                    onChange={(e) =>
+                      setFormData({
+                        ...formData,
+                        content: { ...formData.content, dataSecurity: e.target.value }
+                      })
+                    }
+                    className={modalTextareaClass}
+                  />
+                </label>
+                <label className="space-y-2 block">
+                  <span className="text-sm font-semibold text-gray-300">Data Retention</span>
+                  <textarea
+                    rows={4}
+                    value={formData.content.dataRetention}
+                    onChange={(e) =>
+                      setFormData({
+                        ...formData,
+                        content: { ...formData.content, dataRetention: e.target.value }
+                      })
+                    }
+                    className={modalTextareaClass}
+                  />
+                </label>
+                <label className="space-y-2 block">
+                  <span className="text-sm font-semibold text-gray-300">Deletion Instruction</span>
+                  <textarea
+                    rows={3}
+                    value={formData.content.dataDeletion.instruction}
+                    onChange={(e) =>
+                      setFormData({
+                        ...formData,
+                        content: {
+                          ...formData.content,
+                          dataDeletion: { ...formData.content.dataDeletion, instruction: e.target.value }
+                        }
+                      })
+                    }
+                    className={modalTextareaClass}
+                  />
+                </label>
+                <label className="space-y-2 block">
+                  <span className="text-sm font-semibold text-gray-300">Deletion Email</span>
+                  <input
+                    value={formData.content.dataDeletion.email}
+                    onChange={(e) =>
+                      setFormData({
+                        ...formData,
+                        content: {
+                          ...formData.content,
+                          dataDeletion: { ...formData.content.dataDeletion, email: e.target.value }
+                        }
+                      })
+                    }
+                    className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white"
+                  />
+                </label>
+                <label className="space-y-2 block">
+                  <span className="text-sm font-semibold text-gray-300">Deletion Email Subject</span>
+                  <input
+                    value={formData.content.dataDeletion.subject}
+                    onChange={(e) =>
+                      setFormData({
+                        ...formData,
+                        content: {
+                          ...formData.content,
+                          dataDeletion: { ...formData.content.dataDeletion, subject: e.target.value }
+                        }
+                      })
+                    }
+                    className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white"
+                  />
+                </label>
+                <label className="space-y-2 block">
+                  <span className="text-sm font-semibold text-gray-300">{"Children's Privacy"}</span>
+                  <textarea
+                    rows={4}
+                    value={formData.content.childrenPrivacy}
+                    onChange={(e) =>
+                      setFormData({
+                        ...formData,
+                        content: { ...formData.content, childrenPrivacy: e.target.value }
+                      })
+                    }
+                    className={modalTextareaClass}
+                  />
+                </label>
+                <label className="space-y-2 block">
+                  <span className="text-sm font-semibold text-gray-300">Third-Party Services</span>
+                  <textarea
+                    rows={4}
+                    value={formData.content.thirdParty}
+                    onChange={(e) =>
+                      setFormData({
+                        ...formData,
+                        content: { ...formData.content, thirdParty: e.target.value }
+                      })
+                    }
+                    className={modalTextareaClass}
+                  />
+                </label>
+                <label className="space-y-2 block">
+                  <span className="text-sm font-semibold text-gray-300">Image Processing</span>
+                  <textarea
+                    rows={4}
+                    value={formData.content.imageProcessing}
+                    onChange={(e) =>
+                      setFormData({
+                        ...formData,
+                        content: { ...formData.content, imageProcessing: e.target.value }
+                      })
+                    }
+                    className={modalTextareaClass}
+                  />
+                </label>
+                <label className="space-y-2 block">
+                  <span className="text-sm font-semibold text-gray-300">AI Disclaimer</span>
+                  <textarea
+                    rows={4}
+                    value={formData.content.disclaimer}
+                    onChange={(e) =>
+                      setFormData({
+                        ...formData,
+                        content: { ...formData.content, disclaimer: e.target.value }
+                      })
+                    }
+                    className={modalTextareaClass}
+                  />
+                </label>
+                <label className="space-y-2 block xl:col-span-2">
+                  <span className="text-sm font-semibold text-gray-300">Changes To Policy</span>
+                  <textarea
+                    rows={3}
+                    value={formData.content.changesToPolicy}
+                    onChange={(e) =>
+                      setFormData({
+                        ...formData,
+                        content: { ...formData.content, changesToPolicy: e.target.value }
+                      })
+                    }
+                    className={modalTextareaClass}
+                  />
+                </label>
+                <label className="space-y-2 block">
+                  <span className="text-sm font-semibold text-gray-300">Contact Instruction</span>
+                  <textarea
+                    rows={3}
+                    value={formData.content.contactUs.instruction}
+                    onChange={(e) =>
+                      setFormData({
+                        ...formData,
+                        content: {
+                          ...formData.content,
+                          contactUs: { ...formData.content.contactUs, instruction: e.target.value }
+                        }
+                      })
+                    }
+                    className={modalTextareaClass}
+                  />
+                </label>
+                <label className="space-y-2 block">
+                  <span className="text-sm font-semibold text-gray-300">Contact Email</span>
+                  <input
+                    value={formData.content.contactUs.email}
+                    onChange={(e) =>
+                      setFormData({
+                        ...formData,
+                        content: {
+                          ...formData.content,
+                          contactUs: { ...formData.content.contactUs, email: e.target.value }
+                        }
+                      })
+                    }
+                    className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white"
+                  />
+                </label>
+              </div>
+
+              <div className="flex items-center justify-end gap-3 pt-6 border-t border-white/5">
+                <button
+                  type="button"
+                  onClick={() => setIsModalOpen(false)}
+                  className="px-6 py-3 rounded-xl font-semibold text-gray-400 hover:text-white hover:bg-white/5"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="bg-blue-600 hover:bg-blue-700 text-white px-8 py-3 rounded-xl font-bold"
+                >
+                  {currentProject ? 'Update Project' : 'Create Project'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}

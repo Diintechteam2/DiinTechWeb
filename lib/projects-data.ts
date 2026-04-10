@@ -1,6 +1,7 @@
 export interface Project {
   slug: string
   name: string
+  logoUrl?: string
   lastUpdated?: string
   websiteUrl?: string
   content: {

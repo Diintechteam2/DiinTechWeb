@@ -1,11 +1,10 @@
 "use client"
 
-import { useState, useEffect } from "react"
-import Link from "next/link"
+import { useEffect, useState } from "react"
 import Image from "next/image"
-import { Button } from "@/components/ui/button"
+import Link from "next/link"
 import { Menu, X } from "lucide-react"
-import { cn } from "@/lib/utils"
+import { Button } from "@/components/ui/button"
 import {
   NavigationMenu,
   NavigationMenuContent,
@@ -14,35 +13,37 @@ import {
   NavigationMenuList,
   NavigationMenuTrigger,
 } from "@/components/ui/navigation-menu"
+import type { HeaderContent, SiteLinkItem } from "@/lib/site-content-api"
+import { cn } from "@/lib/utils"
 
-const solutions = [
-  {
-    title: "AI Sales Agents",
-    description: "Autonomous lead qualification and revenue optimization",
-    href: "/#solutions",
-  },
-  { title: "AI Support Agents", description: "24×7 intelligent customer support", href: "/#solutions" },
-  { title: "AI Operations Agents", description: "Workflow orchestration and automation", href: "/#solutions" },
-  { title: "AI Knowledge & RAG", description: "Enterprise knowledge systems", href: "/#solutions" },
-]
+interface HeaderProps {
+  content: HeaderContent
+}
 
-const industries = [
-  { title: "Education & EdTech", href: "/#industries" },
-  { title: "BFSI & FinTech", href: "/#industries" },
-  { title: "Healthcare", href: "/#industries" },
-  { title: "BPO & Call Centers", href: "/#industries" },
-]
+function getNavLink(navLinks: SiteLinkItem[], index: number, fallbackLabel: string, fallbackHref: string) {
+  return navLinks[index] || { label: fallbackLabel, href: fallbackHref }
+}
 
-export function Header() {
+export function Header({ content }: HeaderProps) {
   const [isScrolled, setIsScrolled] = useState(false)
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
+  const [mounted, setMounted] = useState(false)
+
+  const aboutLink = getNavLink(content.navLinks, 0, "About", "/#about")
+  const technologyLink = getNavLink(content.navLinks, 1, "Technology", "/#technology")
+  const whyDiinLink = getNavLink(content.navLinks, 2, "Why Diin", "/#why-diin")
 
   useEffect(() => {
     const handleScroll = () => {
       setIsScrolled(window.scrollY > 20)
     }
+
     window.addEventListener("scroll", handleScroll)
     return () => window.removeEventListener("scroll", handleScroll)
+  }, [])
+
+  useEffect(() => {
+    setMounted(true)
   }, [])
 
   return (
@@ -54,7 +55,6 @@ export function Header() {
     >
       <div className="container mx-auto px-4 lg:px-8">
         <div className="flex items-center justify-between h-16 lg:h-20">
-          {/* Logo */}
           <Link href="/" className="flex items-center">
             <div className="relative w-30 h-10 rounded-lg flex items-center justify-center">
               <Image
@@ -64,106 +64,130 @@ export function Header() {
                 height={200}
                 className="object-fill"
                 priority
-                onError={(e) => {
-                  // Fallback to text logo if image fails to load
-                  const target = e.target as HTMLImageElement
-                  target.style.display = 'none'
-                  const parent = target.parentElement
-                  if (parent) {
-                    parent.innerHTML = '<span class="text-primary-foreground font-bold text-xl">D</span>'
-                  }
-                }}
               />
             </div>
           </Link>
 
-          {/* Desktop Navigation */}
-          <NavigationMenu className="hidden lg:flex">
-            <NavigationMenuList className="gap-1">
-              <NavigationMenuItem>
-                <NavigationMenuLink asChild>
-                  <Link href="/#about" className="px-4 py-2 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">
-                    About
-                  </Link>
-                </NavigationMenuLink>
-              </NavigationMenuItem>
+          {mounted ? (
+            <NavigationMenu className="hidden lg:flex">
+              <NavigationMenuList className="gap-1">
+                <NavigationMenuItem>
+                  <NavigationMenuLink asChild>
+                    <Link
+                      href={aboutLink.href}
+                      className="px-4 py-2 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
+                    >
+                      {aboutLink.label}
+                    </Link>
+                  </NavigationMenuLink>
+                </NavigationMenuItem>
 
-              <NavigationMenuItem>
-                <NavigationMenuTrigger className="px-4 py-2 text-sm font-medium text-muted-foreground hover:text-foreground bg-transparent">
-                  Solutions
-                </NavigationMenuTrigger>
-                <NavigationMenuContent>
-                  <ul className="grid w-[400px] gap-3 p-4 md:w-[500px] md:grid-cols-2 bg-card border border-border rounded-lg">
-                    {solutions.map((item) => (
-                      <li key={item.title}>
-                        <NavigationMenuLink asChild>
-                          <a
-                            href={item.href}
-                            className="block select-none space-y-1 rounded-md p-3 leading-none no-underline outline-none transition-colors hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground"
-                          >
-                            <div className="text-sm font-medium leading-none text-foreground">{item.title}</div>
-                            <p className="line-clamp-2 text-sm leading-snug text-muted-foreground">
-                              {item.description}
-                            </p>
-                          </a>
-                        </NavigationMenuLink>
-                      </li>
-                    ))}
-                  </ul>
-                </NavigationMenuContent>
-              </NavigationMenuItem>
+                <NavigationMenuItem>
+                  <NavigationMenuTrigger className="px-4 py-2 text-sm font-medium text-muted-foreground hover:text-foreground bg-transparent">
+                    Solutions
+                  </NavigationMenuTrigger>
+                  <NavigationMenuContent>
+                    <ul className="grid w-[400px] gap-3 p-4 md:w-[500px] md:grid-cols-2 bg-card border border-border rounded-lg">
+                      {content.solutionMenu.map((item, index) => (
+                        <li key={`${item.label}-${index}`}>
+                          <NavigationMenuLink asChild>
+                            <a
+                              href={item.href}
+                              className="block select-none space-y-1 rounded-md p-3 leading-none no-underline outline-none transition-colors hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground"
+                            >
+                              <div className="text-sm font-medium leading-none text-foreground">{item.label}</div>
+                              <p className="line-clamp-2 text-sm leading-snug text-muted-foreground">{item.description}</p>
+                            </a>
+                          </NavigationMenuLink>
+                        </li>
+                      ))}
+                    </ul>
+                  </NavigationMenuContent>
+                </NavigationMenuItem>
 
-              <NavigationMenuItem>
-                <NavigationMenuTrigger className="px-4 py-2 text-sm font-medium text-muted-foreground hover:text-foreground bg-transparent">
-                  Industries
-                </NavigationMenuTrigger>
-                <NavigationMenuContent>
-                  <ul className="grid w-[250px] gap-2 p-4 bg-card border border-border rounded-lg">
-                    {industries.map((item) => (
-                      <li key={item.title}>
-                        <NavigationMenuLink asChild>
-                          <a
-                            href={item.href}
-                            className="block select-none rounded-md p-3 leading-none no-underline outline-none transition-colors hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground text-sm font-medium text-foreground"
-                          >
-                            {item.title}
-                          </a>
-                        </NavigationMenuLink>
-                      </li>
-                    ))}
-                  </ul>
-                </NavigationMenuContent>
-              </NavigationMenuItem>
+                <NavigationMenuItem>
+                  <NavigationMenuTrigger className="px-4 py-2 text-sm font-medium text-muted-foreground hover:text-foreground bg-transparent">
+                    Industries
+                  </NavigationMenuTrigger>
+                  <NavigationMenuContent>
+                    <ul className="grid w-[250px] gap-2 p-4 bg-card border border-border rounded-lg">
+                      {content.industryMenu.map((item, index) => (
+                        <li key={`${item.label}-${index}`}>
+                          <NavigationMenuLink asChild>
+                            <a
+                              href={item.href}
+                              className="block select-none rounded-md p-3 leading-none no-underline outline-none transition-colors hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground text-sm font-medium text-foreground"
+                            >
+                              {item.label}
+                            </a>
+                          </NavigationMenuLink>
+                        </li>
+                      ))}
+                    </ul>
+                  </NavigationMenuContent>
+                </NavigationMenuItem>
 
-              <NavigationMenuItem>
-                <NavigationMenuLink asChild>
-                  <Link href="/#technology" className="px-4 py-2 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">
-                    Technology
-                  </Link>
-                </NavigationMenuLink>
-              </NavigationMenuItem>
+                <NavigationMenuItem>
+                  <NavigationMenuLink asChild>
+                    <Link
+                      href={technologyLink.href}
+                      className="px-4 py-2 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
+                    >
+                      {technologyLink.label}
+                    </Link>
+                  </NavigationMenuLink>
+                </NavigationMenuItem>
 
-              <NavigationMenuItem>
-                <NavigationMenuLink asChild>
-                  <Link href="/#why-diin" className="px-4 py-2 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">
-                    Why Diin
-                  </Link>
-                </NavigationMenuLink>
-              </NavigationMenuItem>
-            </NavigationMenuList>
-          </NavigationMenu>
+                <NavigationMenuItem>
+                  <NavigationMenuLink asChild>
+                    <Link
+                      href={whyDiinLink.href}
+                      className="px-4 py-2 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
+                    >
+                      {whyDiinLink.label}
+                    </Link>
+                  </NavigationMenuLink>
+                </NavigationMenuItem>
+              </NavigationMenuList>
+            </NavigationMenu>
+          ) : (
+            <nav className="hidden lg:flex items-center gap-1">
+              <Link
+                href={aboutLink.href}
+                className="px-4 py-2 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
+              >
+                {aboutLink.label}
+              </Link>
+              <a href="/#solutions" className="px-4 py-2 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">
+                Solutions
+              </a>
+              <a href="/#industries" className="px-4 py-2 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">
+                Industries
+              </a>
+              <Link
+                href={technologyLink.href}
+                className="px-4 py-2 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
+              >
+                {technologyLink.label}
+              </Link>
+              <Link
+                href={whyDiinLink.href}
+                className="px-4 py-2 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
+              >
+                {whyDiinLink.label}
+              </Link>
+            </nav>
+          )}
 
-          {/* CTA Buttons */}
           <div className="hidden lg:flex items-center gap-3">
             <Button variant="ghost" className="text-muted-foreground hover:text-foreground">
-              Contact
+              {content.contactButtonText}
             </Button>
             <Button className="bg-primary text-primary-foreground hover:bg-primary/90 glow-primary">
-              Book a Strategy Call
+              {content.ctaButtonText}
             </Button>
           </div>
 
-          {/* Mobile Menu Button */}
           <button
             className="lg:hidden p-2 text-foreground"
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
@@ -174,12 +198,11 @@ export function Header() {
         </div>
       </div>
 
-      {/* Mobile Menu */}
       {mobileMenuOpen && (
         <div className="lg:hidden bg-background/95 backdrop-blur-xl border-b border-border">
           <nav className="container mx-auto px-4 py-6 space-y-4">
-            <a href="/#about" className="block py-2 text-foreground font-medium">
-              About
+            <a href={aboutLink.href} className="block py-2 text-foreground font-medium">
+              {aboutLink.label}
             </a>
             <a href="/#solutions" className="block py-2 text-foreground font-medium">
               Solutions
@@ -187,17 +210,17 @@ export function Header() {
             <a href="/#industries" className="block py-2 text-foreground font-medium">
               Industries
             </a>
-            <a href="/#technology" className="block py-2 text-foreground font-medium">
-              Technology
+            <a href={technologyLink.href} className="block py-2 text-foreground font-medium">
+              {technologyLink.label}
             </a>
-            <a href="/#why-diin" className="block py-2 text-foreground font-medium">
-              Why Diin
+            <a href={whyDiinLink.href} className="block py-2 text-foreground font-medium">
+              {whyDiinLink.label}
             </a>
             <div className="pt-4 space-y-3">
               <Button variant="outline" className="w-full bg-transparent">
-                Contact
+                {content.contactButtonText}
               </Button>
-              <Button className="w-full bg-primary text-primary-foreground">Book a Strategy Call</Button>
+              <Button className="w-full bg-primary text-primary-foreground">{content.ctaButtonText}</Button>
             </div>
           </nav>
         </div>

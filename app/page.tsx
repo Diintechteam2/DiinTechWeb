@@ -12,25 +12,59 @@ import { CTASection } from "@/components/cta-section"
 import { Footer } from "@/components/footer"
 import { WhatsAppButton } from "@/components/whatsapp-button"
 import { ScrollToTop } from "@/components/scroll-to-top"
+import { getHeroContent } from "@/lib/hero-api"
+import {
+  getAgenticSectionContent,
+  getCTASectionContent,
+  getDifferenceSectionContent,
+  getFooterContent,
+  getHeaderContent,
+  getIndustriesSectionContent,
+  getLogoCloudContent,
+  getProcessSectionContent,
+  getSolutionsSectionContent,
+  getTechnologySectionContent,
+  getWhyDiinSectionContent,
+} from "@/lib/site-content-api"
+import { getIndustriesContent } from "@/lib/industries-api"
+import { getGlobalSettings } from "@/lib/settings-api"
+import { getSolutionsContent } from "@/lib/solutions-api"
 
-export default function Home() {
+export default async function Home() {
+  const headerContent = await getHeaderContent()
+  const heroContent = await getHeroContent()
+  const logoCloudContent = await getLogoCloudContent()
+  const differenceSectionContent = await getDifferenceSectionContent()
+  const agenticSectionContent = await getAgenticSectionContent()
+  const solutionsSectionContent = await getSolutionsSectionContent()
+  const solutionsContent = await getSolutionsContent()
+  const industriesSectionContent = await getIndustriesSectionContent()
+  const industriesContent = await getIndustriesContent()
+  const technologySectionContent = await getTechnologySectionContent()
+  const processSectionContent = await getProcessSectionContent()
+  const whyDiinSectionContent = await getWhyDiinSectionContent()
+  const ctaSectionContent = await getCTASectionContent()
+  const footerContent = await getFooterContent()
+  const globalSettings = await getGlobalSettings()
+
   return (
     <main className="min-h-screen bg-background">
-      <Header />
-      <HeroSection />
-      <LogoCloud />
-      <WhatMakesDifferent />
-      <AgenticAISection />
-      <SolutionsSection />
-      <IndustriesSection />
-      <TechnologySection />
-      <ProcessSection />
-      <WhyDiinSection />
-      <CTASection />
-      <Footer />
-      
-      {/* Floating Action Buttons */}
-      <WhatsAppButton phoneNumber="+919876543210" message="Hello! I'm interested in Diin Technologies' Agentic AI solutions." />
+      <Header content={headerContent} />
+      <HeroSection content={heroContent} />
+      <LogoCloud content={logoCloudContent} />
+      <WhatMakesDifferent content={differenceSectionContent} />
+      <AgenticAISection content={agenticSectionContent} />
+      <SolutionsSection sectionContent={solutionsSectionContent} solutions={solutionsContent} />
+      <IndustriesSection sectionContent={industriesSectionContent} industries={industriesContent} />
+      <TechnologySection content={technologySectionContent} />
+      <ProcessSection content={processSectionContent} />
+      <WhyDiinSection content={whyDiinSectionContent} />
+      <CTASection content={ctaSectionContent} />
+      <Footer content={footerContent} settings={globalSettings} />
+      <WhatsAppButton
+        phoneNumber={globalSettings.whatsapp.number}
+        message={globalSettings.whatsapp.message}
+      />
       <ScrollToTop />
     </main>
   )
