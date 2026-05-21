@@ -92,6 +92,7 @@ export default function ProjectsPage() {
   const [formData, setFormData] = useState<ProjectForm>(defaultProject);
   const [promptInputs, setPromptInputs] = useState<PromptInputs>(defaultPromptInputs);
   const [isGeneratingDraft, setIsGeneratingDraft] = useState(false);
+  const [aiProvider, setAiProvider] = useState<'openai' | 'gemini'>('gemini');
 
   const fetchProjects = async () => {
     try {
@@ -211,7 +212,8 @@ export default function ProjectsPage() {
       const response = await api.post('projects/generate-privacy-draft', {
         projectName: formData.name,
         websiteUrl: formData.websiteUrl,
-        promptInputs
+        promptInputs,
+        provider: aiProvider
       });
 
       const generatedContent = response.data?.data?.content;
@@ -386,7 +388,7 @@ export default function ProjectsPage() {
             </div>
 
             <form onSubmit={handleSave} className="p-8 space-y-8 text-left">
-              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-5 gap-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6">
                 <label className="space-y-2 block">
                   <span className="text-sm font-semibold text-gray-300">Project Name</span>
                   <input
@@ -414,15 +416,6 @@ export default function ProjectsPage() {
                   />
                 </label>
                 <label className="space-y-2 block">
-                  <span className="text-sm font-semibold text-gray-300">Logo URL / Path</span>
-                  <input
-                    value={formData.logoUrl}
-                    onChange={(e) => setFormData({ ...formData, logoUrl: e.target.value })}
-                    placeholder="/placeholder-logo.svg or https://..."
-                    className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder:text-gray-500"
-                  />
-                </label>
-                <label className="space-y-2 block">
                   <span className="text-sm font-semibold text-gray-300">Last Updated</span>
                   <input
                     value={formData.lastUpdated}
@@ -430,6 +423,69 @@ export default function ProjectsPage() {
                     className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white"
                   />
                 </label>
+
+                <div className="space-y-2 block xl:col-span-4 border-t border-white/5 pt-4">
+                  <span className="text-sm font-semibold text-gray-300">Project Logo</span>
+                  <div className="flex flex-col md:flex-row gap-6 items-stretch">
+                    <div
+                      onDragOver={(e) => e.preventDefault()}
+                      onDrop={(e) => {
+                        e.preventDefault();
+                        const file = e.dataTransfer.files?.[0];
+                        if (file) {
+                          const reader = new FileReader();
+                          reader.onloadend = () => {
+                            setFormData({ ...formData, logoUrl: reader.result as string });
+                          };
+                          reader.readAsDataURL(file);
+                        }
+                      }}
+                      className="flex-1 min-h-[110px] border-2 border-dashed border-white/10 hover:border-blue-500/40 hover:bg-white/[0.01] rounded-2xl flex flex-col items-center justify-center p-4 transition-all cursor-pointer relative"
+                    >
+                      <input
+                        type="file"
+                        accept="image/*"
+                        onChange={(e) => {
+                          const file = e.target.files?.[0];
+                          if (file) {
+                            const reader = new FileReader();
+                            reader.onloadend = () => {
+                              setFormData({ ...formData, logoUrl: reader.result as string });
+                            };
+                            reader.readAsDataURL(file);
+                          }
+                        }}
+                        className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                      />
+                      <Briefcase className="w-7 h-7 text-gray-500 mb-1" />
+                      <p className="text-xs text-gray-400 text-center">
+                        <span className="text-blue-400 font-semibold">Click to upload logo</span> or drag and drop image here
+                      </p>
+                      <p className="text-[10px] text-gray-600 text-center mt-1">PNG, JPG, SVG or WebP</p>
+                    </div>
+
+                    <div className="flex-1 flex flex-col justify-between gap-3">
+                      <div className="space-y-2">
+                        <span className="text-xs font-semibold text-gray-400 block">Or Paste External Logo URL</span>
+                        <input
+                          value={formData.logoUrl.startsWith('data:') ? '' : formData.logoUrl}
+                          onChange={(e) => setFormData({ ...formData, logoUrl: e.target.value })}
+                          placeholder="https://example.com/logo.png"
+                          className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white text-xs placeholder:text-gray-500"
+                        />
+                      </div>
+                      {formData.logoUrl && (
+                        <button
+                          type="button"
+                          onClick={() => setFormData({ ...formData, logoUrl: '' })}
+                          className="w-full border border-red-500/20 hover:bg-red-500/10 text-red-400 text-xs py-3 rounded-xl transition-all font-semibold"
+                        >
+                          Remove Logo Image
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                </div>
               </div>
 
               <div className="rounded-2xl border border-blue-500/20 bg-blue-500/[0.06] p-5 space-y-5">
@@ -443,15 +499,43 @@ export default function ProjectsPage() {
                       Project name aur URL ke saath niche ka context do. Draft generate hoke niche wale privacy fields fill ho jayenge.
                     </p>
                   </div>
-                  <button
-                    type="button"
-                    onClick={handleGenerateDraft}
-                    disabled={isGeneratingDraft}
-                    className="inline-flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-60 disabled:cursor-not-allowed text-white px-5 py-3 rounded-xl font-semibold"
-                  >
-                    {isGeneratingDraft ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
-                    {isGeneratingDraft ? 'Generating Draft...' : 'Generate AI Draft'}
-                  </button>
+                  <div className="flex items-center gap-4 flex-wrap">
+                    {/* Model Switcher */}
+                    <div className="bg-white/5 border border-white/10 rounded-xl p-1 flex items-center">
+                      <button
+                        type="button"
+                        onClick={() => setAiProvider('openai')}
+                        className={`px-4 py-2 text-xs font-semibold rounded-lg transition-all ${
+                          aiProvider === 'openai'
+                            ? 'bg-blue-600 text-white shadow'
+                            : 'text-gray-400 hover:text-white'
+                        }`}
+                      >
+                        OpenAI
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setAiProvider('gemini')}
+                        className={`px-4 py-2 text-xs font-semibold rounded-lg transition-all ${
+                          aiProvider === 'gemini'
+                            ? 'bg-blue-600 text-white shadow'
+                            : 'text-gray-400 hover:text-white'
+                        }`}
+                      >
+                        Gemini
+                      </button>
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={handleGenerateDraft}
+                      disabled={isGeneratingDraft}
+                      className="inline-flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-60 disabled:cursor-not-allowed text-white px-5 py-3 rounded-xl font-semibold"
+                    >
+                      {isGeneratingDraft ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
+                      {isGeneratingDraft ? 'Generating Draft...' : 'Generate AI Draft'}
+                    </button>
+                  </div>
                 </div>
 
                 <div className="grid grid-cols-1 xl:grid-cols-2 gap-5">
