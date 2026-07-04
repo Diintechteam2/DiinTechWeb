@@ -2,7 +2,7 @@ import { notFound } from "next/navigation"
 import { Header } from "@/components/header"
 import { Footer } from "@/components/footer"
 import Link from "next/link"
-import { Shield, Mail, FileText, ChevronRight, Box } from "lucide-react"
+import { Shield, Mail, FileText, ChevronRight, Box, Clock } from "lucide-react"
 import { getProjectBySlug } from "@/lib/projects-api"
 import {
   getFooterContent,
@@ -51,12 +51,46 @@ export default async function ProjectPrivacyPolicy({ params }: PageProps) {
         <div className="max-w-4xl mx-auto">
           {/* Header Section */}
           <div className="mb-12 animate-slide-up" style={{ animationDelay: "0.1s" }}>
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/10 border border-primary/20 text-primary text-xs font-medium mb-4">
-              <Shield className="w-3.5 h-3.5" />
-              <span>{privacyPolicyTemplate.complianceBadgeText}</span>
+            <div className="flex flex-wrap items-center gap-3 mb-4">
+              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/10 border border-primary/20 text-primary text-xs font-medium">
+                <Shield className="w-3.5 h-3.5" />
+                <span>{privacyPolicyTemplate.complianceBadgeText}</span>
+              </div>
+              {project.termsConditions?.enabled && (
+                <Link
+                  href={`/projects/${project.slug}/privacy-policy/terms-conditions`}
+                  className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/5 border border-white/10 text-muted-foreground hover:text-primary hover:border-primary/30 transition-all text-xs font-medium cursor-pointer"
+                >
+                  <FileText className="w-3.5 h-3.5" />
+                  <span>Terms & Conditions</span>
+                </Link>
+              )}
+              {project.refundPolicy?.enabled && (
+                <Link
+                  href={`/projects/${project.slug}/refund-policy`}
+                  className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/5 border border-white/10 text-muted-foreground hover:text-primary hover:border-primary/30 transition-all text-xs font-medium cursor-pointer"
+                >
+                  <Clock className="w-3.5 h-3.5" />
+                  <span>Refund Policy</span>
+                </Link>
+              )}
             </div>
             <h1 className="text-4xl md:text-5xl font-bold text-foreground mb-2">
-              {privacyPolicyTemplate.titlePrefix} <span className="text-primary">{project.name}</span>
+              {privacyPolicyTemplate.titlePrefix.replace(/\s+for\s*$/i, '')}
+              <span className="flex items-center gap-3 text-primary mt-3">
+                {project.logoUrl ? (
+                  <img
+                    src={project.logoUrl}
+                    alt={`${project.name} logo`}
+                    className="w-10 h-10 md:w-12 md:h-12 rounded-xl object-cover border border-primary/20 bg-white/5"
+                  />
+                ) : (
+                  <div className="w-10 h-10 md:w-12 md:h-12 bg-primary/20 rounded-xl flex items-center justify-center border border-primary/20">
+                    <Box className="w-6 h-6 text-primary" />
+                  </div>
+                )}
+                <span>{project.name}</span>
+              </span>
             </h1>
             <p className="text-lg font-medium text-foreground/80 mb-4">
               {privacyPolicyTemplate.organizationLine}

@@ -76,12 +76,36 @@ export default async function ProjectsPage() {
                       {projectsPageContent.visitWebsiteLabel} <ExternalLink className="w-3.5 h-3.5 ml-1.5 group-hover/link:translate-x-0.5 group-hover/link:-translate-y-0.5 transition-transform" />
                     </a>
                   )}
-                  <Link 
-                    href={`/projects/${project.slug}/privacy-policy`}
-                    className="inline-flex items-center text-xs font-medium text-muted-foreground hover:text-primary transition-colors whitespace-nowrap"
-                  >
-                    {projectsPageContent.privacyPolicyLabel} <ArrowRight className="w-3 h-3 ml-1.5" />
-                  </Link>
+                  <div className="flex items-center gap-3">
+                    <Link 
+                      href={`/projects/${project.slug}/privacy-policy`}
+                      className="inline-flex items-center text-xs font-medium text-muted-foreground hover:text-primary transition-colors whitespace-nowrap"
+                    >
+                      {projectsPageContent.privacyPolicyLabel} <ArrowRight className="w-3 h-3 ml-1.5" />
+                    </Link>
+                    {project.refundPolicy?.enabled && (
+                      <>
+                        <span className="text-muted-foreground/30 text-xs">|</span>
+                        <Link 
+                          href={`/projects/${project.slug}/refund-policy`}
+                          className="inline-flex items-center text-xs font-medium text-muted-foreground hover:text-primary transition-colors whitespace-nowrap"
+                        >
+                          Refund Policy <ArrowRight className="w-3 h-3 ml-1.5" />
+                        </Link>
+                      </>
+                    )}
+                    {project.termsConditions?.enabled && (
+                      <>
+                        <span className="text-muted-foreground/30 text-xs">|</span>
+                        <Link 
+                          href={`/projects/${project.slug}/privacy-policy/terms-conditions`}
+                          className="inline-flex items-center text-xs font-medium text-muted-foreground hover:text-primary transition-colors whitespace-nowrap"
+                        >
+                          Terms & Conditions <ArrowRight className="w-3 h-3 ml-1.5" />
+                        </Link>
+                      </>
+                    )}
+                  </div>
                 </div>
               </div>
             ))}

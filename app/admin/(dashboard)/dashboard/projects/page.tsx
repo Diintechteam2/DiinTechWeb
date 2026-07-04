@@ -61,6 +61,27 @@ const defaultProject = {
     imageProcessing: '',
     disclaimer: '',
     contactUs: { instruction: '', email: '' }
+  },
+  refundPolicy: {
+    enabled: false,
+    content: {
+      introduction: '',
+      eligibility: '',
+      timeline: '',
+      process: ''
+    }
+  },
+  termsConditions: {
+    enabled: false,
+    content: {
+      introduction: '',
+      userAgreement: '',
+      intellectualProperty: '',
+      userConduct: '',
+      limitationLiability: '',
+      governingLaw: '',
+      contactUs: ''
+    }
   }
 };
 
@@ -78,7 +99,13 @@ const defaultPromptInputs = {
   hasAuthentication: false,
   hasUploads: false,
   usesAI: false,
-  hasPayments: false
+  hasPayments: false,
+  generateRefundPolicy: false,
+  refundBuffer: '24 hours',
+  gatewayTat: '5-7 business days',
+  refundRules: '',
+  generateTerms: false,
+  termsNotes: ''
 };
 
 type PromptInputs = typeof defaultPromptInputs;
@@ -147,6 +174,33 @@ export default function ProjectsPage() {
         changesToPolicy: ensureString(project.content?.changesToPolicy),
         imageProcessing: ensureString(project.content?.imageProcessing),
         disclaimer: ensureString(project.content?.disclaimer)
+      },
+      refundPolicy: {
+        ...defaultProject.refundPolicy,
+        ...(project.refundPolicy || {}),
+        content: {
+          ...defaultProject.refundPolicy.content,
+          ...(project.refundPolicy?.content || {}),
+          introduction: ensureString(project.refundPolicy?.content?.introduction),
+          eligibility: ensureString(project.refundPolicy?.content?.eligibility),
+          timeline: ensureString(project.refundPolicy?.content?.timeline),
+          process: ensureString(project.refundPolicy?.content?.process)
+        }
+      },
+      termsConditions: {
+        ...defaultProject.termsConditions,
+        ...(project.termsConditions || {}),
+        content: {
+          ...defaultProject.termsConditions.content,
+          ...(project.termsConditions?.content || {}),
+          introduction: ensureString(project.termsConditions?.content?.introduction),
+          userAgreement: ensureString(project.termsConditions?.content?.userAgreement),
+          intellectualProperty: ensureString(project.termsConditions?.content?.intellectualProperty),
+          userConduct: ensureString(project.termsConditions?.content?.userConduct),
+          limitationLiability: ensureString(project.termsConditions?.content?.limitationLiability),
+          governingLaw: ensureString(project.termsConditions?.content?.governingLaw),
+          contactUs: ensureString(project.termsConditions?.content?.contactUs)
+        }
       }
     });
     setPromptInputs({
@@ -154,7 +208,11 @@ export default function ProjectsPage() {
       contactEmail:
         project.content?.contactUs?.email ||
         project.content?.dataDeletion?.email ||
-        ''
+        '',
+      generateRefundPolicy: !!project.refundPolicy?.enabled,
+      refundRules: project.refundPolicy?.content?.eligibility || '',
+      generateTerms: !!project.termsConditions?.enabled,
+      termsNotes: project.termsConditions?.content?.introduction || ''
     });
     setIsModalOpen(true);
   };
@@ -217,6 +275,8 @@ export default function ProjectsPage() {
       });
 
       const generatedContent = response.data?.data?.content;
+      const generatedRefund = response.data?.data?.refundPolicy;
+      const generatedTerms = response.data?.data?.termsConditions;
 
       if (!generatedContent) {
         throw new Error('Draft content not found in AI response');
@@ -250,6 +310,27 @@ export default function ProjectsPage() {
           contactUs: {
             instruction: ensureString(generatedContent.contactUs?.instruction),
             email: ensureString(generatedContent.contactUs?.email) || promptInputs.contactEmail || ''
+          }
+        },
+        refundPolicy: {
+          enabled: !!generatedRefund?.enabled,
+          content: {
+            introduction: ensureString(generatedRefund?.content?.introduction),
+            eligibility: ensureString(generatedRefund?.content?.eligibility),
+            timeline: ensureString(generatedRefund?.content?.timeline),
+            process: ensureString(generatedRefund?.content?.process)
+          }
+        },
+        termsConditions: {
+          enabled: !!generatedTerms?.enabled,
+          content: {
+            introduction: ensureString(generatedTerms?.content?.introduction),
+            userAgreement: ensureString(generatedTerms?.content?.userAgreement),
+            intellectualProperty: ensureString(generatedTerms?.content?.intellectualProperty),
+            userConduct: ensureString(generatedTerms?.content?.userConduct),
+            limitationLiability: ensureString(generatedTerms?.content?.limitationLiability),
+            governingLaw: ensureString(generatedTerms?.content?.governingLaw),
+            contactUs: ensureString(generatedTerms?.content?.contactUs)
           }
         }
       }));
@@ -610,12 +691,14 @@ export default function ProjectsPage() {
                   </label>
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3">
+                 <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-6 gap-3">
                   {[
                     { key: 'hasAuthentication', label: 'Includes Login / Signup' },
                     { key: 'hasUploads', label: 'Includes Image / File uploads' },
                     { key: 'usesAI', label: 'Generates AI output' },
-                    { key: 'hasPayments', label: 'Includes Payments / Subscriptions' }
+                    { key: 'hasPayments', label: 'Includes Payments / Subscriptions' },
+                    { key: 'generateRefundPolicy', label: 'Generate Refund Policy?' },
+                    { key: 'generateTerms', label: 'Generate Terms?' }
                   ].map((item) => (
                     <label
                       key={item.key}
@@ -636,6 +719,54 @@ export default function ProjectsPage() {
                     </label>
                   ))}
                 </div>
+
+                {promptInputs.generateRefundPolicy && (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-5 border-t border-white/5 pt-4 mt-3">
+                    <label className="space-y-2 block">
+                      <span className="text-sm font-semibold text-gray-300">Company Processing Buffer</span>
+                      <input
+                        value={promptInputs.refundBuffer}
+                        onChange={(e) => setPromptInputs({ ...promptInputs, refundBuffer: e.target.value })}
+                        className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white"
+                        placeholder="e.g. 24 hours"
+                      />
+                    </label>
+                    <label className="space-y-2 block">
+                      <span className="text-sm font-semibold text-gray-300">Payment Gateway TAT</span>
+                      <input
+                        value={promptInputs.gatewayTat}
+                        onChange={(e) => setPromptInputs({ ...promptInputs, gatewayTat: e.target.value })}
+                        className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white"
+                        placeholder="e.g. 5-7 business days"
+                      />
+                    </label>
+                    <label className="space-y-2 block md:col-span-2">
+                      <span className="text-sm font-semibold text-gray-300">Refund Rules & Eligibility Guidelines</span>
+                      <textarea
+                        rows={3}
+                        value={promptInputs.refundRules}
+                        onChange={(e) => setPromptInputs({ ...promptInputs, refundRules: e.target.value })}
+                        className={modalTextareaClass}
+                        placeholder="e.g. Non-refundable if AI tokens/credits are consumed. Full refund on unused balance."
+                      />
+                    </label>
+                  </div>
+                )}
+
+                {promptInputs.generateTerms && (
+                  <div className="grid grid-cols-1 gap-5 border-t border-white/5 pt-4 mt-3">
+                    <label className="space-y-2 block">
+                      <span className="text-sm font-semibold text-gray-300">Additional Terms & Conditions Guidelines</span>
+                      <textarea
+                        rows={3}
+                        value={promptInputs.termsNotes}
+                        onChange={(e) => setPromptInputs({ ...promptInputs, termsNotes: e.target.value })}
+                        className={modalTextareaClass}
+                        placeholder="e.g. Must be 18+ to use. All content generated remains property of the user, but we are not liable for copyright infringement."
+                      />
+                    </label>
+                  </div>
+                )}
               </div>
 
               <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-4">
@@ -937,6 +1068,256 @@ export default function ProjectsPage() {
                     className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white"
                   />
                 </label>
+                <div className="xl:col-span-2 border-t border-white/5 pt-8 mt-4 space-y-6">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h4 className="text-md font-bold text-white">Refund & Cancellation Policy</h4>
+                      <p className="text-xs text-gray-500">Enable and modify the refund policy details for this project.</p>
+                    </div>
+                    <label className="flex items-center gap-3 rounded-xl border border-white/10 bg-white/[0.03] px-4 py-2 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={formData.refundPolicy?.enabled || false}
+                        onChange={(e) =>
+                          setFormData({
+                            ...formData,
+                            refundPolicy: {
+                              ...formData.refundPolicy,
+                              enabled: e.target.checked,
+                              content: formData.refundPolicy?.content || { introduction: '', eligibility: '', timeline: '', process: '' }
+                            }
+                          })
+                        }
+                        className="h-4 w-4 rounded border-white/20 bg-transparent"
+                      />
+                      <span className="text-sm text-gray-300">Enable Refund Policy</span>
+                    </label>
+                  </div>
+
+                  {formData.refundPolicy?.enabled && (
+                    <div className="grid grid-cols-1 xl:grid-cols-2 gap-6 pt-4">
+                      <label className="space-y-2 block xl:col-span-2">
+                        <span className="text-sm font-semibold text-gray-300">Refund Introduction</span>
+                        <textarea
+                          rows={3}
+                          value={formData.refundPolicy.content?.introduction || ''}
+                          onChange={(e) =>
+                            setFormData({
+                              ...formData,
+                              refundPolicy: {
+                                ...formData.refundPolicy,
+                                content: { ...formData.refundPolicy.content, introduction: e.target.value }
+                              }
+                            })
+                          }
+                          className={modalTextareaClass}
+                        />
+                      </label>
+                      <label className="space-y-2 block">
+                        <span className="text-sm font-semibold text-gray-300">Refund Eligibility Guidelines</span>
+                        <textarea
+                          rows={4}
+                          value={formData.refundPolicy.content?.eligibility || ''}
+                          onChange={(e) =>
+                            setFormData({
+                              ...formData,
+                              refundPolicy: {
+                                ...formData.refundPolicy,
+                                content: { ...formData.refundPolicy.content, eligibility: e.target.value }
+                              }
+                            })
+                          }
+                          className={modalTextareaClass}
+                        />
+                      </label>
+                      <label className="space-y-2 block">
+                        <span className="text-sm font-semibold text-gray-300">Refund Timeline & Gateway Delay</span>
+                        <textarea
+                          rows={4}
+                          value={formData.refundPolicy.content?.timeline || ''}
+                          onChange={(e) =>
+                            setFormData({
+                              ...formData,
+                              refundPolicy: {
+                                ...formData.refundPolicy,
+                                content: { ...formData.refundPolicy.content, timeline: e.target.value }
+                              }
+                            })
+                          }
+                          className={modalTextareaClass}
+                        />
+                      </label>
+                      <label className="space-y-2 block xl:col-span-2">
+                        <span className="text-sm font-semibold text-gray-300">Refund Process Instructions</span>
+                        <textarea
+                          rows={4}
+                          value={formData.refundPolicy.content?.process || ''}
+                          onChange={(e) =>
+                            setFormData({
+                              ...formData,
+                              refundPolicy: {
+                                ...formData.refundPolicy,
+                                content: { ...formData.refundPolicy.content, process: e.target.value }
+                              }
+                            })
+                          }
+                          className={modalTextareaClass}
+                        />
+                      </label>
+                    </div>
+                  )}
+                </div>
+
+                <div className="xl:col-span-2 border-t border-white/5 pt-8 mt-4 space-y-6">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h4 className="text-md font-bold text-white">Terms & Conditions Policy</h4>
+                      <p className="text-xs text-gray-500">Enable and modify the terms & conditions details for this project.</p>
+                    </div>
+                    <label className="flex items-center gap-3 rounded-xl border border-white/10 bg-white/[0.03] px-4 py-2 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={formData.termsConditions?.enabled || false}
+                        onChange={(e) =>
+                          setFormData({
+                            ...formData,
+                            termsConditions: {
+                              ...formData.termsConditions,
+                              enabled: e.target.checked,
+                              content: formData.termsConditions?.content || { introduction: '', userAgreement: '', intellectualProperty: '', userConduct: '', limitationLiability: '', governingLaw: '', contactUs: '' }
+                            }
+                          })
+                        }
+                        className="h-4 w-4 rounded border-white/20 bg-transparent"
+                      />
+                      <span className="text-sm text-gray-300">Enable Terms & Conditions</span>
+                    </label>
+                  </div>
+
+                  {formData.termsConditions?.enabled && (
+                    <div className="grid grid-cols-1 xl:grid-cols-2 gap-6 pt-4">
+                      <label className="space-y-2 block xl:col-span-2">
+                        <span className="text-sm font-semibold text-gray-300">Terms Introduction</span>
+                        <textarea
+                          rows={3}
+                          value={formData.termsConditions.content?.introduction || ''}
+                          onChange={(e) =>
+                            setFormData({
+                              ...formData,
+                              termsConditions: {
+                                ...formData.termsConditions,
+                                content: { ...formData.termsConditions.content, introduction: e.target.value }
+                              }
+                            })
+                          }
+                          className={modalTextareaClass}
+                        />
+                      </label>
+                      <label className="space-y-2 block">
+                        <span className="text-sm font-semibold text-gray-300">User Agreement / Eligibility</span>
+                        <textarea
+                          rows={4}
+                          value={formData.termsConditions.content?.userAgreement || ''}
+                          onChange={(e) =>
+                            setFormData({
+                              ...formData,
+                              termsConditions: {
+                                ...formData.termsConditions,
+                                content: { ...formData.termsConditions.content, userAgreement: e.target.value }
+                              }
+                            })
+                          }
+                          className={modalTextareaClass}
+                        />
+                      </label>
+                      <label className="space-y-2 block">
+                        <span className="text-sm font-semibold text-gray-300">Intellectual Property Rights</span>
+                        <textarea
+                          rows={4}
+                          value={formData.termsConditions.content?.intellectualProperty || ''}
+                          onChange={(e) =>
+                            setFormData({
+                              ...formData,
+                              termsConditions: {
+                                ...formData.termsConditions,
+                                content: { ...formData.termsConditions.content, intellectualProperty: e.target.value }
+                              }
+                            })
+                          }
+                          className={modalTextareaClass}
+                        />
+                      </label>
+                      <label className="space-y-2 block">
+                        <span className="text-sm font-semibold text-gray-300">User Conduct & Guidelines</span>
+                        <textarea
+                          rows={4}
+                          value={formData.termsConditions.content?.userConduct || ''}
+                          onChange={(e) =>
+                            setFormData({
+                              ...formData,
+                              termsConditions: {
+                                ...formData.termsConditions,
+                                content: { ...formData.termsConditions.content, userConduct: e.target.value }
+                              }
+                            })
+                          }
+                          className={modalTextareaClass}
+                        />
+                      </label>
+                      <label className="space-y-2 block">
+                        <span className="text-sm font-semibold text-gray-300">Limitation of Liability</span>
+                        <textarea
+                          rows={4}
+                          value={formData.termsConditions.content?.limitationLiability || ''}
+                          onChange={(e) =>
+                            setFormData({
+                              ...formData,
+                              termsConditions: {
+                                ...formData.termsConditions,
+                                content: { ...formData.termsConditions.content, limitationLiability: e.target.value }
+                              }
+                            })
+                          }
+                          className={modalTextareaClass}
+                        />
+                      </label>
+                      <label className="space-y-2 block">
+                        <span className="text-sm font-semibold text-gray-300">Governing Law</span>
+                        <textarea
+                          rows={3}
+                          value={formData.termsConditions.content?.governingLaw || ''}
+                          onChange={(e) =>
+                            setFormData({
+                              ...formData,
+                              termsConditions: {
+                                ...formData.termsConditions,
+                                content: { ...formData.termsConditions.content, governingLaw: e.target.value }
+                              }
+                            })
+                          }
+                          className={modalTextareaClass}
+                        />
+                      </label>
+                      <label className="space-y-2 block">
+                        <span className="text-sm font-semibold text-gray-300">Support / Contact Channel</span>
+                        <textarea
+                          rows={3}
+                          value={formData.termsConditions.content?.contactUs || ''}
+                          onChange={(e) =>
+                            setFormData({
+                              ...formData,
+                              termsConditions: {
+                                ...formData.termsConditions,
+                                content: { ...formData.termsConditions.content, contactUs: e.target.value }
+                              }
+                            })
+                          }
+                          className={modalTextareaClass}
+                        />
+                      </label>
+                    </div>
+                  )}
+                </div>
               </div>
 
               <div className="flex items-center justify-end gap-3 pt-6 border-t border-white/5">

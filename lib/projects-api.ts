@@ -40,6 +40,27 @@ function normalizeProject(project: Partial<Project>): Project {
         email: project.content?.contactUs?.email || "",
       },
     },
+    refundPolicy: project.refundPolicy ? {
+      enabled: !!project.refundPolicy.enabled,
+      content: {
+        introduction: project.refundPolicy.content?.introduction || "",
+        eligibility: project.refundPolicy.content?.eligibility || "",
+        timeline: project.refundPolicy.content?.timeline || "",
+        process: project.refundPolicy.content?.process || "",
+      }
+    } : undefined,
+    termsConditions: project.termsConditions ? {
+      enabled: !!project.termsConditions.enabled,
+      content: {
+        introduction: project.termsConditions.content?.introduction || "",
+        userAgreement: project.termsConditions.content?.userAgreement || "",
+        intellectualProperty: project.termsConditions.content?.intellectualProperty || "",
+        userConduct: project.termsConditions.content?.userConduct || "",
+        limitationLiability: project.termsConditions.content?.limitationLiability || "",
+        governingLaw: project.termsConditions.content?.governingLaw || "",
+        contactUs: project.termsConditions.content?.contactUs || "",
+      }
+    } : undefined,
   }
 }
 

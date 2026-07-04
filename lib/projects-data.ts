@@ -30,6 +30,27 @@ export interface Project {
       email: string
     }
   }
+  refundPolicy?: {
+    enabled: boolean
+    content: {
+      introduction: string
+      eligibility: string
+      timeline: string
+      process: string
+    }
+  }
+  termsConditions?: {
+    enabled: boolean
+    content: {
+      introduction: string
+      userAgreement: string
+      intellectualProperty: string
+      userConduct: string
+      limitationLiability: string
+      governingLaw: string
+      contactUs: string
+    }
+  }
 }
 
 export const PROJECTS: Project[] = [
