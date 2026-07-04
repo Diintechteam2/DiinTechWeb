@@ -6,8 +6,8 @@ import api from '@/admin_lib/api';
 import { Loader2, Lock, Mail } from 'lucide-react';
 
 export default function LoginPage() {
-  const [email, setEmail] = useState('admin@diintech.com');
-  const [password, setPassword] = useState('admin123');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const router = useRouter();

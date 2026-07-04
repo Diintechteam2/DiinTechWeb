@@ -197,12 +197,12 @@ export default function ProjectsPage() {
 
   const handleGenerateDraft = async () => {
     if (!formData.name.trim()) {
-      alert('Project name required hai AI draft generate karne ke liye.');
+      alert('Project name is required to generate the AI draft.');
       return;
     }
 
     if (!formData.websiteUrl.trim()) {
-      alert('Website URL required hai AI draft generate karne ke liye.');
+      alert('Website URL is required to generate the AI draft.');
       return;
     }
 
@@ -219,7 +219,7 @@ export default function ProjectsPage() {
       const generatedContent = response.data?.data?.content;
 
       if (!generatedContent) {
-        throw new Error('AI response me draft content nahi mila');
+        throw new Error('Draft content not found in AI response');
       }
 
       setFormData((prev) => ({
@@ -496,7 +496,7 @@ export default function ProjectsPage() {
                       AI Privacy Draft Generator
                     </h3>
                     <p className="text-sm text-gray-400">
-                      Project name aur URL ke saath niche ka context do. Draft generate hoke niche wale privacy fields fill ho jayenge.
+                      Provide the context below along with the project name and URL. Generating the draft will automatically populate the privacy fields below.
                     </p>
                   </div>
                   <div className="flex items-center gap-4 flex-wrap">
@@ -546,7 +546,7 @@ export default function ProjectsPage() {
                       value={promptInputs.projectDescription}
                       onChange={(e) => setPromptInputs({ ...promptInputs, projectDescription: e.target.value })}
                       className={modalTextareaClass}
-                      placeholder="Project/app kya karta hai?"
+                      placeholder="What does the project/app do?"
                     />
                   </label>
                   <label className="space-y-2 block">
@@ -556,7 +556,7 @@ export default function ProjectsPage() {
                       value={promptInputs.targetUsers}
                       onChange={(e) => setPromptInputs({ ...promptInputs, targetUsers: e.target.value })}
                       className={modalTextareaClass}
-                      placeholder="Kis type ke users is app ko use karte hain?"
+                      placeholder="What type of users use this app?"
                     />
                   </label>
                   <label className="space-y-2 block">
@@ -566,7 +566,7 @@ export default function ProjectsPage() {
                       value={promptInputs.coreFeatures}
                       onChange={(e) => setPromptInputs({ ...promptInputs, coreFeatures: e.target.value })}
                       className={modalTextareaClass}
-                      placeholder="Main features ya workflows"
+                      placeholder="Main features or workflows"
                     />
                   </label>
                   <label className="space-y-2 block">
@@ -605,17 +605,17 @@ export default function ProjectsPage() {
                       value={promptInputs.additionalNotes}
                       onChange={(e) => setPromptInputs({ ...promptInputs, additionalNotes: e.target.value })}
                       className={modalTextareaClass}
-                      placeholder="Koi specific legal/business note jo draft me include karna ho"
+                      placeholder="Any specific legal/business notes to include in the draft"
                     />
                   </label>
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3">
                   {[
-                    { key: 'hasAuthentication', label: 'Login / Signup hai' },
-                    { key: 'hasUploads', label: 'Image / File upload hai' },
-                    { key: 'usesAI', label: 'AI output generate hota hai' },
-                    { key: 'hasPayments', label: 'Payment / Subscription hai' }
+                    { key: 'hasAuthentication', label: 'Includes Login / Signup' },
+                    { key: 'hasUploads', label: 'Includes Image / File uploads' },
+                    { key: 'usesAI', label: 'Generates AI output' },
+                    { key: 'hasPayments', label: 'Includes Payments / Subscriptions' }
                   ].map((item) => (
                     <label
                       key={item.key}
@@ -625,10 +625,10 @@ export default function ProjectsPage() {
                         type="checkbox"
                         checked={promptInputs[item.key as keyof PromptInputs] as boolean}
                         onChange={(e) =>
-                          setPromptInputs({
-                            ...promptInputs,
-                            [item.key]: e.target.checked
-                          })
+                           setPromptInputs({
+                             ...promptInputs,
+                             [item.key]: e.target.checked
+                           })
                         }
                         className="h-4 w-4 rounded border-white/20 bg-transparent"
                       />
@@ -647,8 +647,8 @@ export default function ProjectsPage() {
                   })}
                   <div className="text-sm text-gray-400">
                     {formData.logoUrl
-                      ? 'Card par ye logo show hoga.'
-                      : 'Agar logo URL/path empty rahega to default icon show hoga.'}
+                      ? 'This logo will be displayed on the card.'
+                      : 'If the logo URL/path is empty, a default icon will be displayed.'}
                   </div>
                 </div>
               </div>
