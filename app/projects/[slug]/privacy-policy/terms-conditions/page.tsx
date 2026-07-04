@@ -65,15 +65,6 @@ export default async function ProjectTermsConditions({ params }: PageProps) {
                 <Shield className="w-3.5 h-3.5" />
                 <span>Privacy Policy</span>
               </Link>
-              {project.refundPolicy?.enabled && (
-                <Link
-                  href={`/projects/${project.slug}/refund-policy`}
-                  className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/5 border border-white/10 text-muted-foreground hover:text-primary hover:border-primary/30 transition-all text-xs font-medium cursor-pointer"
-                >
-                  <Clock className="w-3.5 h-3.5" />
-                  <span>Refund Policy</span>
-                </Link>
-              )}
             </div>
             <h1 className="text-4xl md:text-5xl font-bold text-foreground mb-2">
               Terms & Conditions
@@ -97,7 +88,7 @@ export default async function ProjectTermsConditions({ params }: PageProps) {
             </p>
             <p className="text-muted-foreground flex items-center gap-2">
               <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-              {privacyPolicyTemplate.effectiveDateLabel} <span className="text-foreground/80 font-medium">{project.lastUpdated}</span>
+              Last Updated: <span className="text-foreground/80 font-medium">{project.lastUpdated}</span>
             </p>
           </div>
 

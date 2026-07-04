@@ -65,15 +65,6 @@ export default async function ProjectPrivacyPolicy({ params }: PageProps) {
                   <span>Terms & Conditions</span>
                 </Link>
               )}
-              {project.refundPolicy?.enabled && (
-                <Link
-                  href={`/projects/${project.slug}/refund-policy`}
-                  className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/5 border border-white/10 text-muted-foreground hover:text-primary hover:border-primary/30 transition-all text-xs font-medium cursor-pointer"
-                >
-                  <Clock className="w-3.5 h-3.5" />
-                  <span>Refund Policy</span>
-                </Link>
-              )}
             </div>
             <h1 className="text-4xl md:text-5xl font-bold text-foreground mb-2">
               {privacyPolicyTemplate.titlePrefix.replace(/\s+for\s*$/i, '')}
@@ -97,7 +88,7 @@ export default async function ProjectPrivacyPolicy({ params }: PageProps) {
             </p>
             <p className="text-muted-foreground flex items-center gap-2">
               <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-              {privacyPolicyTemplate.effectiveDateLabel} <span className="text-foreground/80 font-medium">{project.lastUpdated}</span>
+              Last Updated: <span className="text-foreground/80 font-medium">{project.lastUpdated}</span>
             </p>
           </div>
 
@@ -262,6 +253,70 @@ export default async function ProjectPrivacyPolicy({ params }: PageProps) {
                       <h2 className="text-xl font-bold text-foreground mb-4">{count++}. {privacyPolicyTemplate.sections.changesToPolicy}</h2>
                       <p className="text-sm text-muted-foreground leading-relaxed">{project.content.changesToPolicy}</p>
                     </section>
+
+                    {/* Refund & Cancellation Policy (Conditional) */}
+                    {project.refundPolicy?.enabled && (
+                      <section className="pt-8 border-t border-border/50">
+                        <div className="flex items-center gap-3 mb-6 animate-slide-up">
+                          <div className="w-8 h-8 rounded-lg bg-primary/20 border border-primary/20 flex items-center justify-center text-primary">
+                            <Clock className="w-4 h-4" />
+                          </div>
+                          <h2 className="text-xl font-bold text-foreground m-0">{count++}. Refund & Cancellation Policy</h2>
+                        </div>
+                        
+                        <div className="space-y-8 animate-slide-up">
+                          {project.refundPolicy.content?.introduction && (
+                            <p className="text-sm text-muted-foreground leading-relaxed whitespace-pre-line m-0">
+                              {project.refundPolicy.content.introduction}
+                            </p>
+                          )}
+
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
+                            {project.refundPolicy.content?.eligibility && (
+                              <div className="p-6 rounded-xl bg-card/30 border border-border/50 hover:border-primary/20 transition-all duration-300">
+                                <div className="flex items-center gap-3 mb-4">
+                                  <div className="w-8 h-8 rounded-lg bg-blue-500/20 border border-blue-500/30 flex items-center justify-center text-blue-400">
+                                    <Shield className="w-4 h-4" />
+                                  </div>
+                                  <h3 className="text-base font-semibold text-foreground m-0">Refund Eligibility</h3>
+                                </div>
+                                <p className="text-sm text-muted-foreground leading-relaxed whitespace-pre-line m-0">
+                                  {project.refundPolicy.content.eligibility}
+                                </p>
+                              </div>
+                            )}
+
+                            {project.refundPolicy.content?.timeline && (
+                              <div className="p-6 rounded-xl bg-card/30 border border-border/50 hover:border-primary/20 transition-all duration-300">
+                                <div className="flex items-center gap-3 mb-4">
+                                  <div className="w-8 h-8 rounded-lg bg-emerald-500/20 border border-emerald-500/30 flex items-center justify-center text-emerald-400">
+                                    <Clock className="w-4 h-4" />
+                                  </div>
+                                  <h3 className="text-base font-semibold text-foreground m-0">Processing Timeline</h3>
+                                </div>
+                                <p className="text-sm text-muted-foreground leading-relaxed whitespace-pre-line m-0">
+                                  {project.refundPolicy.content.timeline}
+                                </p>
+                              </div>
+                            )}
+
+                            {project.refundPolicy.content?.process && (
+                              <div className="p-6 rounded-xl bg-card/30 border border-border/50 hover:border-primary/20 transition-all duration-300 md:col-span-2">
+                                <div className="flex items-center gap-3 mb-4">
+                                  <div className="w-8 h-8 rounded-lg bg-purple-500/20 border border-purple-500/30 flex items-center justify-center text-purple-400">
+                                    <FileText className="w-4 h-4" />
+                                  </div>
+                                  <h3 className="text-base font-semibold text-foreground m-0">How to Request a Refund</h3>
+                                </div>
+                                <p className="text-sm text-muted-foreground leading-relaxed whitespace-pre-line m-0">
+                                  {project.refundPolicy.content.process}
+                                </p>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      </section>
+                    )}
 
                     {/* Contact Us */}
                     <section className="pt-8 border-t border-border/50">
