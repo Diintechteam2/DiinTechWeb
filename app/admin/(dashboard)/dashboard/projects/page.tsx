@@ -118,7 +118,9 @@ export default function ProjectsPage() {
   const [currentProject, setCurrentProject] = useState<ProjectRecord | null>(null);
   const [formData, setFormData] = useState<ProjectForm>(defaultProject);
   const [promptInputs, setPromptInputs] = useState<PromptInputs>(defaultPromptInputs);
-  const [isGeneratingDraft, setIsGeneratingDraft] = useState(false);
+  const [isGeneratingPrivacy, setIsGeneratingPrivacy] = useState(false);
+  const [isGeneratingRefund, setIsGeneratingRefund] = useState(false);
+  const [isGeneratingTerms, setIsGeneratingTerms] = useState(false);
   const [aiProvider, setAiProvider] = useState<'openai' | 'gemini'>('gemini');
 
   const fetchProjects = async () => {
@@ -253,7 +255,7 @@ export default function ProjectsPage() {
     }
   };
 
-  const handleGenerateDraft = async () => {
+  const handleGenerateDraft = async (target: 'privacy' | 'refund' | 'terms') => {
     if (!formData.name.trim()) {
       alert('Project name is required to generate the AI draft.');
       return;
@@ -264,76 +266,82 @@ export default function ProjectsPage() {
       return;
     }
 
-    setIsGeneratingDraft(true);
+    if (target === 'privacy') setIsGeneratingPrivacy(true);
+    else if (target === 'refund') setIsGeneratingRefund(true);
+    else if (target === 'terms') setIsGeneratingTerms(true);
 
     try {
       const response = await api.post('projects/generate-privacy-draft', {
         projectName: formData.name,
         websiteUrl: formData.websiteUrl,
         promptInputs,
-        provider: aiProvider
+        provider: aiProvider,
+        target: target
       });
 
       const generatedContent = response.data?.data?.content;
       const generatedRefund = response.data?.data?.refundPolicy;
       const generatedTerms = response.data?.data?.termsConditions;
 
-      if (!generatedContent) {
-        throw new Error('Draft content not found in AI response');
-      }
+      setFormData((prev) => {
+        const nextData = { ...prev };
+        nextData.lastUpdated = nextData.lastUpdated || new Date().toLocaleDateString();
 
-      setFormData((prev) => ({
-        ...prev,
-        lastUpdated: prev.lastUpdated || new Date().toLocaleDateString(),
-        content: {
-          ...prev.content,
-          introduction: ensureString(generatedContent.introduction),
-          informationCollect: {
-            personal: ensureStringArray(generatedContent.informationCollect?.personal),
-            userContent: ensureStringArray(generatedContent.informationCollect?.userContent),
-            deviceUsage: ensureStringArray(generatedContent.informationCollect?.deviceUsage)
-          },
-          howWeUse: ensureStringArray(generatedContent.howWeUse),
-          dataSharing: ensureStringArray(generatedContent.dataSharing),
-          dataSecurity: ensureString(generatedContent.dataSecurity),
-          dataRetention: ensureString(generatedContent.dataRetention),
-          dataDeletion: {
-            instruction: ensureString(generatedContent.dataDeletion?.instruction),
-            email: ensureString(generatedContent.dataDeletion?.email) || promptInputs.contactEmail || '',
-            subject: ensureString(generatedContent.dataDeletion?.subject)
-          },
-          childrenPrivacy: ensureString(generatedContent.childrenPrivacy),
-          thirdParty: ensureString(generatedContent.thirdParty),
-          changesToPolicy: ensureString(generatedContent.changesToPolicy),
-          imageProcessing: ensureString(generatedContent.imageProcessing),
-          disclaimer: ensureString(generatedContent.disclaimer),
-          contactUs: {
-            instruction: ensureString(generatedContent.contactUs?.instruction),
-            email: ensureString(generatedContent.contactUs?.email) || promptInputs.contactEmail || ''
-          }
-        },
-        refundPolicy: {
-          enabled: !!generatedRefund?.enabled,
-          content: {
-            introduction: ensureString(generatedRefund?.content?.introduction),
-            eligibility: ensureString(generatedRefund?.content?.eligibility),
-            timeline: ensureString(generatedRefund?.content?.timeline),
-            process: ensureString(generatedRefund?.content?.process)
-          }
-        },
-        termsConditions: {
-          enabled: !!generatedTerms?.enabled,
-          content: {
-            introduction: ensureString(generatedTerms?.content?.introduction),
-            userAgreement: ensureString(generatedTerms?.content?.userAgreement),
-            intellectualProperty: ensureString(generatedTerms?.content?.intellectualProperty),
-            userConduct: ensureString(generatedTerms?.content?.userConduct),
-            limitationLiability: ensureString(generatedTerms?.content?.limitationLiability),
-            governingLaw: ensureString(generatedTerms?.content?.governingLaw),
-            contactUs: ensureString(generatedTerms?.content?.contactUs)
-          }
+        if (target === 'privacy' && generatedContent) {
+          nextData.content = {
+            ...prev.content,
+            introduction: ensureString(generatedContent.introduction),
+            informationCollect: {
+              personal: ensureStringArray(generatedContent.informationCollect?.personal),
+              userContent: ensureStringArray(generatedContent.informationCollect?.userContent),
+              deviceUsage: ensureStringArray(generatedContent.informationCollect?.deviceUsage)
+            },
+            howWeUse: ensureStringArray(generatedContent.howWeUse),
+            dataSharing: ensureStringArray(generatedContent.dataSharing),
+            dataSecurity: ensureString(generatedContent.dataSecurity),
+            dataRetention: ensureString(generatedContent.dataRetention),
+            dataDeletion: {
+              instruction: ensureString(generatedContent.dataDeletion?.instruction),
+              email: ensureString(generatedContent.dataDeletion?.email) || promptInputs.contactEmail || '',
+              subject: ensureString(generatedContent.dataDeletion?.subject)
+            },
+            childrenPrivacy: ensureString(generatedContent.childrenPrivacy),
+            thirdParty: ensureString(generatedContent.thirdParty),
+            changesToPolicy: ensureString(generatedContent.changesToPolicy),
+            imageProcessing: ensureString(generatedContent.imageProcessing),
+            disclaimer: ensureString(generatedContent.disclaimer),
+            contactUs: {
+              instruction: ensureString(generatedContent.contactUs?.instruction),
+              email: ensureString(generatedContent.contactUs?.email) || promptInputs.contactEmail || ''
+            }
+          };
+        } else if (target === 'refund' && generatedRefund) {
+          nextData.refundPolicy = {
+            enabled: !!generatedRefund.enabled,
+            content: {
+              introduction: ensureString(generatedRefund.content?.introduction),
+              eligibility: ensureString(generatedRefund.content?.eligibility),
+              timeline: ensureString(generatedRefund.content?.timeline),
+              process: ensureString(generatedRefund.content?.process)
+            }
+          };
+        } else if (target === 'terms' && generatedTerms) {
+          nextData.termsConditions = {
+            enabled: !!generatedTerms.enabled,
+            content: {
+              introduction: ensureString(generatedTerms.content?.introduction),
+              userAgreement: ensureString(generatedTerms.content?.userAgreement),
+              intellectualProperty: ensureString(generatedTerms.content?.intellectualProperty),
+              userConduct: ensureString(generatedTerms.content?.userConduct),
+              limitationLiability: ensureString(generatedTerms.content?.limitationLiability),
+              governingLaw: ensureString(generatedTerms.content?.governingLaw),
+              contactUs: ensureString(generatedTerms.content?.contactUs)
+            }
+          };
         }
-      }));
+
+        return nextData;
+      });
 
       if (promptInputs.contactEmail) {
         setPromptInputs((prev) => ({ ...prev }));
@@ -350,7 +358,9 @@ export default function ProjectsPage() {
             : 'Failed to generate AI draft';
       alert(message);
     } finally {
-      setIsGeneratingDraft(false);
+      setIsGeneratingPrivacy(false);
+      setIsGeneratingRefund(false);
+      setIsGeneratingTerms(false);
     }
   };
 
@@ -607,15 +617,37 @@ export default function ProjectsPage() {
                       </button>
                     </div>
 
-                    <button
-                      type="button"
-                      onClick={handleGenerateDraft}
-                      disabled={isGeneratingDraft}
-                      className="inline-flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-60 disabled:cursor-not-allowed text-white px-5 py-3 rounded-xl font-semibold"
-                    >
-                      {isGeneratingDraft ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
-                      {isGeneratingDraft ? 'Generating Draft...' : 'Generate AI Draft'}
-                    </button>
+                    <div className="flex flex-wrap items-center gap-2.5">
+                      <button
+                        type="button"
+                        onClick={() => handleGenerateDraft('privacy')}
+                        disabled={isGeneratingPrivacy || isGeneratingRefund || isGeneratingTerms}
+                        className="inline-flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-60 disabled:cursor-not-allowed text-white px-4 py-2.5 rounded-xl font-semibold text-xs transition-colors"
+                      >
+                        {isGeneratingPrivacy ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Sparkles className="w-3.5 h-3.5" />}
+                        {isGeneratingPrivacy ? 'Generating Privacy...' : 'Generate Privacy'}
+                      </button>
+                      
+                      <button
+                        type="button"
+                        onClick={() => handleGenerateDraft('terms')}
+                        disabled={isGeneratingPrivacy || isGeneratingRefund || isGeneratingTerms || !promptInputs.generateTerms}
+                        className="inline-flex items-center justify-center gap-2 bg-purple-600 hover:bg-purple-700 disabled:opacity-60 disabled:cursor-not-allowed text-white px-4 py-2.5 rounded-xl font-semibold text-xs transition-colors"
+                      >
+                        {isGeneratingTerms ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Sparkles className="w-3.5 h-3.5" />}
+                        {isGeneratingTerms ? 'Generating Terms...' : 'Generate Terms'}
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => handleGenerateDraft('refund')}
+                        disabled={isGeneratingPrivacy || isGeneratingRefund || isGeneratingTerms || !promptInputs.generateRefundPolicy}
+                        className="inline-flex items-center justify-center gap-2 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-60 disabled:cursor-not-allowed text-white px-4 py-2.5 rounded-xl font-semibold text-xs transition-colors"
+                      >
+                        {isGeneratingRefund ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Sparkles className="w-3.5 h-3.5" />}
+                        {isGeneratingRefund ? 'Generating Refund...' : 'Generate Refund'}
+                      </button>
+                    </div>
                   </div>
                 </div>
 
