@@ -2,6 +2,26 @@ import { PROJECTS, type Project } from "@/lib/projects-data"
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api/v1"
 
+export interface ProjectAsset {
+  _id: string
+  project: {
+    _id: string
+    name: string
+    slug: string
+    logoUrl?: string
+  }
+  title: string
+  type: "image" | "video"
+  url: string
+  key: string
+  createdAt: string
+}
+
+type ProjectAssetApiResponse = {
+  success?: boolean
+  data?: ProjectAsset[]
+}
+
 type ProjectApiResponse = {
   success?: boolean
   data?: Project | Project[]
@@ -105,3 +125,32 @@ export async function getProjectBySlug(slug: string): Promise<Project | null> {
 
   return PROJECTS.find((project) => project.slug.toLowerCase() === slug.toLowerCase()) || null
 }
+
+export async function getProjectAssets(projectId?: string, type?: string): Promise<ProjectAsset[]> {
+  try {
+    let url = `${API_BASE_URL}/project-assets`
+    const params = new URLSearchParams()
+    if (projectId) params.append("project", projectId)
+    if (type) params.append("type", type)
+    
+    const queryString = params.toString()
+    if (queryString) {
+      url += `?${queryString}`
+    }
+
+    const response = await fetch(url, {
+      cache: "no-store",
+    })
+
+    if (!response.ok) {
+      throw new Error("Failed to fetch project assets")
+    }
+
+    const result = (await response.json()) as ProjectAssetApiResponse
+    return result.data || []
+  } catch (err) {
+    console.error("Error fetching project assets:", err)
+    return []
+  }
+}
+

@@ -12,7 +12,8 @@ import {
   Building2,
   Menu,
   X,
-  FileText
+  FileText,
+  Image
 } from 'lucide-react';
 import { cn } from '@/admin_lib/utils';
 
@@ -20,6 +21,7 @@ const sidebarItems = [
   { name: 'Dashboard', icon: LayoutDashboard, href: '/admin/dashboard' },
   { name: 'Hero Section', icon: Layers, href: '/admin/dashboard/hero' },
   { name: 'Projects', icon: Briefcase, href: '/admin/dashboard/projects' },
+  { name: 'Project Assets', icon: Image, href: '/admin/dashboard/project-assets' },
   { name: 'Solutions', icon: Layers, href: '/admin/dashboard/solutions' },
   { name: 'Industries', icon: Building2, href: '/admin/dashboard/industries' },
   { name: 'Site Content', icon: FileText, href: '/admin/dashboard/site-content' },
