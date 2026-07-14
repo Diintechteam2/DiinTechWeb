@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import Link from 'next/link';
 import { 
   ArrowRight, 
@@ -37,6 +38,12 @@ export function ProjectsDirectoryClient({
   const [assets, setAssets] = useState<ProjectAsset[]>(initialAssets);
   const [searchTerm, setSearchTerm] = useState('');
   const [mediaTypeFilter, setMediaTypeFilter] = useState<'image' | 'video'>('video');
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+    return () => setMounted(false);
+  }, []);
   
   // Navigation states
   const [selectedProjectForAssets, setSelectedProjectForAssets] = useState<string | null>(null);
@@ -49,6 +56,8 @@ export function ProjectsDirectoryClient({
   const videoRefs = useRef<{ [key: string]: HTMLVideoElement | null }>({});
   const modalVideoRefs = useRef<{ [key: string]: HTMLVideoElement | null }>({});
   const scrollContainerRef = useRef<HTMLDivElement>(null);
+  const isScrollingRef = useRef(false);
+  const isProgrammaticScrollRef = useRef(false);
 
   // List of all videos of the selected project for vertical reels snap slider
   const videoReelsList = assets.filter(a => a.project?._id === selectedProjectForAssets && a.type === 'video');
@@ -89,17 +98,61 @@ export function ProjectsDirectoryClient({
         const targetScrollTop = index * containerHeight;
         // Only scroll if we are not already at the target scroll position (e.g. if scroll was manual)
         if (Math.abs(container.scrollTop - targetScrollTop) > 10) {
+          isProgrammaticScrollRef.current = true;
           container.scrollTo({
             top: targetScrollTop,
             behavior: 'instant'
           });
+          // Reset flag after a tiny timeout to allow async scroll events to fire and get ignored
+          setTimeout(() => {
+            isProgrammaticScrollRef.current = false;
+          }, 100);
         }
       }
     }
   }, [selectedAsset?._id, videoReelsList.length]);
 
+  // Intercept wheel events to allow scrolling only one video at a time on desktop
+  useEffect(() => {
+    const container = scrollContainerRef.current;
+    if (!container || !selectedAsset || selectedAsset.type !== 'video') return;
+
+    const handleWheel = (e: WheelEvent) => {
+      e.preventDefault();
+
+      if (isScrollingRef.current) return;
+
+      const direction = e.deltaY > 0 ? 1 : -1;
+      const index = videoReelsList.findIndex(a => a._id === selectedAsset._id);
+      
+      if (index === -1) return;
+
+      const nextIndex = index + direction;
+      if (nextIndex >= 0 && nextIndex < videoReelsList.length) {
+        isScrollingRef.current = true;
+        isProgrammaticScrollRef.current = true;
+        const targetAsset = videoReelsList[nextIndex];
+        setSelectedAsset(targetAsset);
+        setIsPaused(false);
+
+        // Lock scroll for 800ms
+        setTimeout(() => {
+          isScrollingRef.current = false;
+          isProgrammaticScrollRef.current = false;
+        }, 800);
+      }
+    };
+
+    container.addEventListener('wheel', handleWheel, { passive: false });
+    return () => {
+      container.removeEventListener('wheel', handleWheel);
+    };
+  }, [selectedAsset?._id, videoReelsList]);
+
   // Handle vertical scroll snapping in reels container to update the active reel
   const handleScroll = (e: React.UIEvent<HTMLDivElement>) => {
+    if (isProgrammaticScrollRef.current) return;
+
     const container = e.currentTarget;
     const scrollTop = container.scrollTop;
     const containerHeight = container.clientHeight;
@@ -632,7 +685,7 @@ export function ProjectsDirectoryClient({
         </div>
       )}
 
-      {selectedAsset && (
+      {mounted && selectedAsset && createPortal(
         <div 
           onClick={closeAssetModal}
           className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/95 backdrop-blur-md p-0 md:p-4 cursor-pointer"
@@ -811,7 +864,8 @@ export function ProjectsDirectoryClient({
 
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
       
       {/* Toast alert fallback */}

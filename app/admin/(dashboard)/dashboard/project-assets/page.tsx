@@ -17,7 +17,8 @@ import {
   FileText,
   Upload,
   ArrowLeft,
-  ArrowRight
+  ArrowRight,
+  Pencil
 } from 'lucide-react';
 
 interface Project {
@@ -49,14 +50,17 @@ export default function ProjectAssetsDashboard() {
 
   // Modal states
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [uploading, setUploading] = useState(false);
-  const [uploadProgress, setUploadProgress] = useState(0);
+  const [filesProgress, setFilesProgress] = useState<{ [key: string]: number }>({});
+  const [editingAsset, setEditingAsset] = useState<ProjectAsset | null>(null);
+  const [editTitle, setEditTitle] = useState('');
   
   // Form states
   const [selectedProjectId, setSelectedProjectId] = useState('');
   const [assetTitle, setAssetTitle] = useState('');
   const [assetType, setAssetType] = useState<'image' | 'video'>('image');
-  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -82,19 +86,20 @@ export default function ProjectAssetsDashboard() {
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files.length > 0) {
-      const file = e.target.files[0];
-      setSelectedFile(file);
+      const files = Array.from(e.target.files);
+      setSelectedFiles(files);
       
-      // Auto-detect type
-      if (file.type.startsWith('video/')) {
+      // Auto-detect type from first file
+      const firstFile = files[0];
+      if (firstFile.type.startsWith('video/')) {
         setAssetType('video');
       } else {
         setAssetType('image');
       }
-
-      // Pre-fill title if empty
-      if (!assetTitle) {
-        const nameWithoutExt = file.name.substring(0, file.name.lastIndexOf('.')) || file.name;
+      
+      // Pre-fill title if empty and only 1 file is selected
+      if (files.length === 1 && !assetTitle) {
+        const nameWithoutExt = firstFile.name.substring(0, firstFile.name.lastIndexOf('.')) || firstFile.name;
         setAssetTitle(nameWithoutExt);
       }
     }
@@ -106,63 +111,118 @@ export default function ProjectAssetsDashboard() {
       alert('Please select a project');
       return;
     }
-    if (!selectedFile) {
-      alert('Please select a file to upload');
+    if (selectedFiles.length === 0) {
+      alert('Please select at least one file to upload');
       return;
     }
 
     try {
       setUploading(true);
-      setUploadProgress(5);
 
-      // 1. Get presigned upload URL from backend
-      const presignedRes = await api.post('project-assets/presigned-url', {
-        filename: selectedFile.name,
-        contentType: selectedFile.type
+      // Initialize progress mapping
+      const initialProgress: { [key: string]: number } = {};
+      selectedFiles.forEach((file) => {
+        initialProgress[file.name] = 0;
+      });
+      setFilesProgress(initialProgress);
+
+      // 1. Get presigned upload URLs in bulk
+      const filesMeta = selectedFiles.map((f) => ({
+        filename: f.name,
+        contentType: f.type
+      }));
+
+      const presignedRes = await api.post('project-assets/presigned-urls-bulk', {
+        files: filesMeta
       });
 
-      const { uploadUrl, fileUrl, key } = presignedRes.data.data;
-      setUploadProgress(20);
+      const presignedUrlsData = presignedRes.data.data; // array of { filename, uploadUrl, fileUrl, key }
 
-      // 2. Upload file directly to Cloudflare R2 bucket using PUT
-      await axios.put(uploadUrl, selectedFile, {
-        headers: {
-          'Content-Type': selectedFile.type
-        },
-        onUploadProgress: (progressEvent) => {
-          const total = progressEvent.total || selectedFile.size;
-          const current = progressEvent.loaded;
-          const percentage = Math.round((current / total) * 80);
-          setUploadProgress(20 + percentage);
+      // 2. Upload files in parallel with controlled concurrency
+      const uploadResults: any[] = [];
+      const queue = [...selectedFiles];
+      const concurrencyLimit = 3;
+
+      const processUpload = async (file: File) => {
+        const presignedInfo = presignedUrlsData.find((p: any) => p.filename === file.name);
+        if (!presignedInfo) {
+          throw new Error(`Failed to find presigned URL for file: ${file.name}`);
         }
+
+        const { uploadUrl, fileUrl, key } = presignedInfo;
+
+        await axios.put(uploadUrl, file, {
+          headers: {
+            'Content-Type': file.type
+          },
+          onUploadProgress: (progressEvent) => {
+            const total = progressEvent.total || file.size;
+            const current = progressEvent.loaded;
+            const percentage = Math.round((current / total) * 100);
+            setFilesProgress((prev) => ({
+              ...prev,
+              [file.name]: percentage
+            }));
+          }
+        });
+
+        // Determine title
+        let finalTitle = file.name.substring(0, file.name.lastIndexOf('.')) || file.name;
+        if (assetTitle && selectedFiles.length > 1) {
+          const fileIndex = selectedFiles.indexOf(file) + 1;
+          finalTitle = `${assetTitle} - ${fileIndex}`;
+        } else if (assetTitle && selectedFiles.length === 1) {
+          finalTitle = assetTitle;
+        }
+
+        uploadResults.push({
+          project: selectedProjectId,
+          title: finalTitle,
+          type: file.type.startsWith('video/') ? 'video' : 'image',
+          url: fileUrl,
+          key: key
+        });
+      };
+
+      const worker = async () => {
+        while (queue.length > 0) {
+          const file = queue.shift();
+          if (file) {
+            await processUpload(file);
+          }
+        }
+      };
+
+      // Launch concurrent workers
+      const workers = Array(Math.min(concurrencyLimit, selectedFiles.length))
+        .fill(null)
+        .map(() => worker());
+
+      await Promise.all(workers);
+
+      // 3. Save all asset metadata to backend database in bulk
+      await api.post('project-assets/bulk', {
+        assets: uploadResults
       });
 
-      setUploadProgress(95);
-
-      // 3. Save R2 metadata details to backend database
-      await api.post('project-assets', {
-        project: selectedProjectId,
-        title: assetTitle,
-        type: assetType,
-        url: fileUrl,
-        key: key
-      });
-
-      setUploadProgress(100);
-      alert('Asset uploaded and saved successfully!');
+      alert('All assets uploaded and saved successfully!');
       
       // Reset form and close modal
       setIsModalOpen(false);
       resetForm();
-      setActiveAssetTab(assetType);
+      
+      const firstFile = selectedFiles[0];
+      if (firstFile) {
+        setActiveAssetTab(firstFile.type.startsWith('video/') ? 'video' : 'image');
+      }
       fetchData();
     } catch (err: any) {
       console.error(err);
       const errMsg = err.response?.data?.message || err.message || 'Upload failed';
-      alert(`Error uploading file: ${errMsg}`);
+      alert(`Error uploading files: ${errMsg}`);
     } finally {
       setUploading(false);
-      setUploadProgress(0);
+      setFilesProgress({});
     }
   };
 
@@ -177,6 +237,40 @@ export default function ProjectAssetsDashboard() {
     }
   };
 
+  const openEditModal = (asset: ProjectAsset) => {
+    setEditingAsset(asset);
+    setEditTitle(asset.title);
+    setIsEditModalOpen(true);
+  };
+
+  const handleUpdate = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingAsset) return;
+    if (!editTitle.trim()) {
+      alert('Please enter a title');
+      return;
+    }
+
+    try {
+      setUploading(true);
+      await api.put(`project-assets/${editingAsset._id}`, {
+        title: editTitle
+      });
+
+      alert('Asset updated successfully!');
+      setIsEditModalOpen(false);
+      setEditingAsset(null);
+      setEditTitle('');
+      fetchData();
+    } catch (err: any) {
+      console.error(err);
+      const errMsg = err.response?.data?.message || err.message || 'Update failed';
+      alert(`Error updating asset: ${errMsg}`);
+    } finally {
+      setUploading(false);
+    }
+  };
+
   const copyShareLink = (assetId: string) => {
     const publicUrl = window.location.origin + `/projects?tab=assets&assetId=${assetId}`;
     navigator.clipboard.writeText(publicUrl);
@@ -188,7 +282,8 @@ export default function ProjectAssetsDashboard() {
     setSelectedProjectId(activeProjectId || '');
     setAssetTitle('');
     setAssetType('image');
-    setSelectedFile(null);
+    setSelectedFiles([]);
+    setFilesProgress({});
     if (fileInputRef.current) fileInputRef.current.value = '';
   };
 
@@ -285,6 +380,13 @@ export default function ProjectAssetsDashboard() {
             >
               <ExternalLink className="w-4 h-4" />
             </a>
+            <button
+              onClick={() => openEditModal(asset)}
+              className="p-2 bg-blue-600/10 hover:bg-blue-600 text-blue-400 hover:text-white rounded-lg transition-colors"
+              title="Edit Title"
+            >
+              <Pencil className="w-4 h-4" />
+            </button>
             <button
               onClick={() => handleDelete(asset._id)}
               className="p-2 bg-red-500/10 hover:bg-red-500 text-red-400 hover:text-white rounded-lg transition-colors"
@@ -627,33 +729,56 @@ export default function ProjectAssetsDashboard() {
                   ref={fileInputRef}
                   onChange={handleFileChange}
                   required
+                  multiple
                   disabled={uploading}
                   accept={assetType === 'image' ? 'image/*' : 'video/*'}
                   className="w-full text-sm text-gray-400 file:mr-4 file:py-2.5 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-white/10 file:text-white hover:file:bg-white/20 file:cursor-pointer file:transition-colors bg-white/5 border border-white/10 p-2.5 rounded-xl"
                 />
-                {selectedFile && (
-                  <p className="text-gray-400 text-xs mt-2 truncate">
-                    File selected: <span className="text-white font-medium">{selectedFile.name}</span> ({Math.round(selectedFile.size / 1024 / 1024 * 100) / 100} MB)
-                  </p>
+                {selectedFiles.length > 0 && (
+                  <div className="mt-3 bg-black/20 border border-white/5 rounded-xl p-3 max-h-40 overflow-y-auto space-y-1.5 no-scrollbar animate-in fade-in slide-in-from-top-1.5 duration-200">
+                    <p className="text-gray-400 text-xs font-semibold mb-1">
+                      Selected Files ({selectedFiles.length}):
+                    </p>
+                    {selectedFiles.map((file, idx) => (
+                      <div key={`${file.name}-${idx}`} className="flex justify-between items-center text-xs text-gray-300">
+                        <span className="truncate max-w-[200px]" title={file.name}>
+                          {idx + 1}. {file.name}
+                        </span>
+                        <span className="text-gray-500 shrink-0 font-medium">
+                          ({(file.size / 1024 / 1024).toFixed(2)} MB)
+                        </span>
+                      </div>
+                    ))}
+                  </div>
                 )}
               </div>
 
-              {/* Upload Progress bar */}
+              {/* Upload Progress bars */}
               {uploading && (
-                <div className="space-y-2 mt-4 bg-black/30 p-4 rounded-xl border border-white/5">
-                  <div className="flex items-center justify-between text-xs text-gray-400">
-                    <span className="flex items-center gap-1.5 font-medium">
-                      <Loader2 className="w-3.5 h-3.5 animate-spin text-blue-500" />
-                      Uploading directly to Cloudflare R2...
-                    </span>
-                    <span className="font-bold text-white">{uploadProgress}%</span>
-                  </div>
-                  <div className="w-full bg-white/10 h-2 rounded-full overflow-hidden">
-                    <div
-                      className="bg-blue-600 h-full rounded-full transition-all duration-300"
-                      style={{ width: `${uploadProgress}%` }}
-                    />
-                  </div>
+                <div className="space-y-3 mt-4 bg-black/30 p-4 rounded-xl border border-white/5 max-h-48 overflow-y-auto no-scrollbar animate-in fade-in slide-in-from-top-1.5 duration-200">
+                  <p className="text-xs text-gray-400 font-semibold flex items-center gap-1.5 mb-2">
+                    <Loader2 className="w-3.5 h-3.5 animate-spin text-blue-500" />
+                    Uploading files in parallel...
+                  </p>
+                  {selectedFiles.map((file, idx) => {
+                    const progress = filesProgress[file.name] || 0;
+                    return (
+                      <div key={`${file.name}-progress-${idx}`} className="space-y-1">
+                        <div className="flex items-center justify-between text-[11px]">
+                          <span className="text-gray-300 truncate max-w-[220px]" title={file.name}>
+                            {file.name}
+                          </span>
+                          <span className="font-bold text-white shrink-0">{progress}%</span>
+                        </div>
+                        <div className="w-full bg-white/5 h-1.5 rounded-full overflow-hidden">
+                          <div
+                            className="bg-blue-600 h-full rounded-full transition-all duration-300"
+                            style={{ width: `${progress}%` }}
+                          />
+                        </div>
+                      </div>
+                    );
+                  })}
                 </div>
               )}
 
@@ -679,6 +804,70 @@ export default function ProjectAssetsDashboard() {
                     </>
                   ) : (
                     <span>Start Upload</span>
+                  )}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Edit Asset Modal */}
+      {isEditModalOpen && editingAsset && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 backdrop-blur-sm p-4">
+          <div className="bg-neutral-900 border border-white/10 rounded-3xl w-full max-w-md overflow-hidden shadow-2xl animate-in fade-in zoom-in-95 duration-200">
+            {/* Modal Header */}
+            <div className="flex items-center justify-between px-6 py-4 border-b border-white/10">
+              <h2 className="text-xl font-bold text-white flex items-center gap-2">
+                <Pencil className="w-5 h-5 text-blue-500" />
+                Edit Asset Title
+              </h2>
+              <button
+                onClick={() => !uploading && setIsEditModalOpen(false)}
+                className="p-1 rounded-lg text-gray-400 hover:text-white hover:bg-white/5 transition-colors"
+                disabled={uploading}
+              >
+                <X className="w-6 h-6" />
+              </button>
+            </div>
+
+            {/* Modal Form */}
+            <form onSubmit={handleUpdate} className="p-6 space-y-5">
+              {/* Asset Title */}
+              <div>
+                <label className="block text-gray-300 text-sm font-semibold mb-2">Asset Title *</label>
+                <input
+                  type="text"
+                  required
+                  value={editTitle}
+                  onChange={(e) => setEditTitle(e.target.value)}
+                  disabled={uploading}
+                  className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:border-blue-500 transition-colors"
+                />
+              </div>
+
+              {/* Action Buttons */}
+              <div className="flex items-center justify-end gap-3 pt-4 border-t border-white/10 mt-6">
+                <button
+                  type="button"
+                  onClick={() => setIsEditModalOpen(false)}
+                  disabled={uploading}
+                  className="px-5 py-2.5 bg-white/5 hover:bg-white/10 text-gray-300 font-semibold rounded-xl transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={uploading}
+                  className="px-6 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-xl transition-all shadow-[0_0_15px_rgba(37,99,235,0.3)] disabled:opacity-50 flex items-center gap-2"
+                >
+                  {uploading ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      <span>Saving...</span>
+                    </>
+                  ) : (
+                    <span>Save Changes</span>
                   )}
                 </button>
               </div>

@@ -91,6 +91,11 @@ export function Footer({ content, settings }: FooterProps) {
                   </a>
                 </li>
               ))}
+              <li>
+                <Link href="/asset/myaiads/videos" className="text-muted-foreground hover:text-foreground transition-colors">
+                  Asset
+                </Link>
+              </li>
             </ul>
           </div>
 
