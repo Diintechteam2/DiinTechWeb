@@ -62,16 +62,33 @@ export function Header({ content, projectName, projectLogo, projectWebsiteUrl, i
           <Link href={isProjectView ? (projectWebsiteUrl || "#") : "/"} className="flex items-center">
             {isProjectView ? (
               <div className="flex items-center gap-3">
-                {projectLogo && (
-                  <img
-                    src={projectLogo}
-                    alt={`${projectName} Logo`}
-                    className="w-10 h-10 rounded-xl object-cover border border-white/10"
-                  />
+                {projectName?.toLowerCase() === 'myaiads' ? (
+                  <>
+                    {projectLogo && (
+                      <img
+                        src={projectLogo}
+                        alt=""
+                        className="w-10 h-10 rounded-xl object-cover border border-white/10"
+                      />
+                    )}
+                    <span className="text-xl font-bold text-white tracking-tight">
+                      UGC <span className="text-primary">Videos</span>
+                    </span>
+                  </>
+                ) : (
+                  <>
+                    {projectLogo && (
+                      <img
+                        src={projectLogo}
+                        alt={`${projectName} Logo`}
+                        className="w-10 h-10 rounded-xl object-cover border border-white/10"
+                      />
+                    )}
+                    <span className="text-xl font-bold text-white tracking-tight">
+                      {projectName}
+                    </span>
+                  </>
                 )}
-                <span className="text-xl font-bold text-white tracking-tight">
-                  {projectName}
-                </span>
               </div>
             ) : (
               <div className="relative w-30 h-10 rounded-lg flex items-center justify-center">

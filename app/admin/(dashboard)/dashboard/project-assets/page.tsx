@@ -18,7 +18,8 @@ import {
   Upload,
   ArrowLeft,
   ArrowRight,
-  Pencil
+  Pencil,
+  ChevronDown
 } from 'lucide-react';
 
 interface Project {
@@ -667,10 +668,10 @@ export default function ProjectAssetsDashboard() {
       {/* Upload Asset Modal */}
       {isModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 backdrop-blur-sm p-4">
-          <div className="bg-neutral-900 border border-white/10 rounded-3xl w-full max-w-lg overflow-hidden shadow-2xl animate-in fade-in zoom-in-95 duration-200">
+          <div className="bg-neutral-900 border border-white/10 rounded-3xl w-full max-w-lg overflow-hidden shadow-2xl animate-in fade-in zoom-in-95 duration-200 flex flex-col max-h-[90vh]">
             
             {/* Modal Header */}
-            <div className="flex items-center justify-between px-6 py-4 border-b border-white/10">
+            <div className="flex items-center justify-between px-6 py-4 border-b border-white/10 shrink-0">
               <h2 className="text-xl font-bold text-white flex items-center gap-2">
                 <Upload className="w-5 h-5 text-blue-500" />
                 Upload New Asset
@@ -685,203 +686,208 @@ export default function ProjectAssetsDashboard() {
             </div>
 
             {/* Modal Form */}
-            <form onSubmit={handleUploadAndSave} className="p-6 space-y-5">
-              {/* Select Project */}
-              <div>
-                <label className="block text-gray-300 text-sm font-semibold mb-2">Associate Project *</label>
-                {activeProjectId ? (
-                  <div className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white flex items-center gap-3">
-                    {activeProjectDetails?.logoUrl ? (
-                      <img
-                        src={activeProjectDetails.logoUrl}
-                        alt=""
-                        className="w-6 h-6 rounded object-cover"
-                      />
-                    ) : (
-                      <Briefcase className="w-4 h-4 text-blue-500" />
-                    )}
-                    <span className="font-medium">{activeProjectDetails?.name}</span>
-                  </div>
-                ) : (
-                  <select
-                    required
-                    value={selectedProjectId}
-                    onChange={(e) => setSelectedProjectId(e.target.value)}
-                    disabled={uploading}
-                    className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-blue-500 transition-colors cursor-pointer"
-                  >
-                    <option value="" className="bg-neutral-900 text-gray-400">Select listed project...</option>
-                    {projects.map((proj) => (
-                      <option key={proj._id} value={proj._id} className="bg-neutral-900 text-white">
-                        {proj.name}
-                      </option>
-                    ))}
-                  </select>
-                )}
-              </div>
+            <form onSubmit={handleUploadAndSave} className="flex flex-col flex-grow overflow-hidden">
+              <div className="p-6 space-y-5 overflow-y-auto flex-grow no-scrollbar">
+                {/* Select Project */}
+                <div>
+                  <label className="block text-gray-300 text-sm font-semibold mb-2">Associate Project *</label>
+                  {activeProjectId ? (
+                    <div className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white flex items-center gap-3">
+                      {activeProjectDetails?.logoUrl ? (
+                        <img
+                          src={activeProjectDetails.logoUrl}
+                          alt=""
+                          className="w-6 h-6 rounded object-cover"
+                        />
+                      ) : (
+                        <Briefcase className="w-4 h-4 text-blue-500" />
+                      )}
+                      <span className="font-medium">{activeProjectDetails?.name}</span>
+                    </div>
+                  ) : (
+                    <select
+                      required
+                      value={selectedProjectId}
+                      onChange={(e) => setSelectedProjectId(e.target.value)}
+                      disabled={uploading}
+                      className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-blue-500 transition-colors cursor-pointer"
+                    >
+                      <option value="" className="bg-neutral-900 text-gray-400">Select listed project...</option>
+                      {projects.map((proj) => (
+                        <option key={proj._id} value={proj._id} className="bg-neutral-900 text-white">
+                          {proj.name}
+                        </option>
+                      ))}
+                    </select>
+                  )}
+                </div>
 
-              {/* Asset Title */}
-              <div>
-                <label className="block text-gray-300 text-sm font-semibold mb-2">Asset Title</label>
-                <input
-                  type="text"
-                  placeholder="e.g. BadhAI Promo Reel, Dashboard Mockup"
-                  value={assetTitle}
-                  onChange={(e) => setAssetTitle(e.target.value)}
-                  disabled={uploading}
-                  className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:border-blue-500 transition-colors"
-                />
-              </div>
-
-              {/* Asset Category */}
-              <div>
-                <label className="block text-gray-300 text-sm font-semibold mb-2 flex items-center justify-between">
-                  <span>Category (Optional)</span>
-                  <button
-                    type="button"
-                    onClick={() => setShowNewCategoryInput(!showNewCategoryInput)}
-                    className="text-xs text-blue-500 hover:text-blue-400 flex items-center gap-1 font-semibold"
-                  >
-                    {showNewCategoryInput ? "Select Existing" : "+ Add New"}
-                  </button>
-                </label>
-                
-                {showNewCategoryInput ? (
+                {/* Asset Title */}
+                <div>
+                  <label className="block text-gray-300 text-sm font-semibold mb-2">Asset Title</label>
                   <input
                     type="text"
-                    required
-                    placeholder="Enter new category name..."
-                    value={newCategoryName}
-                    onChange={(e) => setNewCategoryName(e.target.value)}
+                    placeholder="e.g. BadhAI Promo Reel, Dashboard Mockup"
+                    value={assetTitle}
+                    onChange={(e) => setAssetTitle(e.target.value)}
                     disabled={uploading}
-                    className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:border-blue-500 transition-colors"
+                    className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:border-blue-500 transition-colors text-sm"
                   />
-                ) : (
-                  <select
-                    value={assetCategory}
-                    onChange={(e) => setAssetCategory(e.target.value)}
-                    disabled={uploading}
-                    className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-blue-500 transition-colors cursor-pointer"
-                  >
-                    <option value="" className="bg-neutral-900 text-gray-400">Select Category (Optional)</option>
-                    {existingCategories.map((cat) => (
-                      <option key={cat} value={cat} className="bg-neutral-900 text-white">
-                        {cat}
-                      </option>
-                    ))}
-                  </select>
-                )}
-              </div>
-
-              {/* Asset Description */}
-              <div>
-                <label className="block text-gray-300 text-sm font-semibold mb-2">Description (Optional)</label>
-                <textarea
-                  placeholder="Enter asset details or description..."
-                  value={assetDescription}
-                  onChange={(e) => setAssetDescription(e.target.value)}
-                  disabled={uploading}
-                  rows={3}
-                  className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:border-blue-500 transition-colors resize-none"
-                />
-              </div>
-
-              {/* Asset Type Selector */}
-              <div>
-                <label className="block text-gray-300 text-sm font-semibold mb-2">Asset Type *</label>
-                <div className="grid grid-cols-2 gap-4">
-                  <button
-                    type="button"
-                    onClick={() => setAssetType('image')}
-                    disabled={uploading}
-                    className={`py-3 rounded-xl border flex items-center justify-center gap-2 font-semibold transition-all ${
-                      assetType === 'image'
-                        ? 'bg-blue-600/25 border-blue-500 text-white shadow-lg shadow-blue-500/10'
-                        : 'bg-white/5 border-white/10 text-gray-400 hover:text-white'
-                    }`}
-                  >
-                    <Image className="w-5 h-5 text-sky-400" />
-                    Image
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setAssetType('video')}
-                    disabled={uploading}
-                    className={`py-3 rounded-xl border flex items-center justify-center gap-2 font-semibold transition-all ${
-                      assetType === 'video'
-                        ? 'bg-blue-600/25 border-blue-500 text-white shadow-lg shadow-blue-500/10'
-                        : 'bg-white/5 border-white/10 text-gray-400 hover:text-white'
-                    }`}
-                  >
-                    <Video className="w-5 h-5 text-emerald-400" />
-                    Video/Reel
-                  </button>
                 </div>
-              </div>
 
-              {/* File Upload input */}
-              <div>
-                <label className="block text-gray-300 text-sm font-semibold mb-2">Select File *</label>
-                <input
-                  type="file"
-                  ref={fileInputRef}
-                  onChange={handleFileChange}
-                  required
-                  multiple
-                  disabled={uploading}
-                  accept={assetType === 'image' ? 'image/*' : 'video/*'}
-                  className="w-full text-sm text-gray-400 file:mr-4 file:py-2.5 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-white/10 file:text-white hover:file:bg-white/20 file:cursor-pointer file:transition-colors bg-white/5 border border-white/10 p-2.5 rounded-xl"
-                />
-                {selectedFiles.length > 0 && (
-                  <div className="mt-3 bg-black/20 border border-white/5 rounded-xl p-3 max-h-40 overflow-y-auto space-y-1.5 no-scrollbar animate-in fade-in slide-in-from-top-1.5 duration-200">
-                    <p className="text-gray-400 text-xs font-semibold mb-1">
-                      Selected Files ({selectedFiles.length}):
+                {/* Asset Category */}
+                <div>
+                  <label className="block text-gray-300 text-sm font-semibold mb-2 flex items-center justify-between">
+                    <span>Category (Optional)</span>
+                    <button
+                      type="button"
+                      onClick={() => setShowNewCategoryInput(!showNewCategoryInput)}
+                      className="text-[11px] bg-blue-500/10 hover:bg-blue-500/20 text-blue-500 hover:text-blue-400 px-2.5 py-1 rounded-lg border border-blue-500/20 hover:border-blue-500/30 transition-all font-semibold select-none"
+                    >
+                      {showNewCategoryInput ? "Select Existing" : "+ Add New"}
+                    </button>
+                  </label>
+                  
+                  {showNewCategoryInput ? (
+                    <input
+                      type="text"
+                      required
+                      placeholder="Enter new category name..."
+                      value={newCategoryName}
+                      onChange={(e) => setNewCategoryName(e.target.value)}
+                      disabled={uploading}
+                      className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:border-blue-500 transition-colors text-sm"
+                    />
+                  ) : (
+                    <div className="relative">
+                      <select
+                        value={assetCategory}
+                        onChange={(e) => setAssetCategory(e.target.value)}
+                        disabled={uploading}
+                        className="w-full appearance-none bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-blue-500 transition-colors cursor-pointer text-sm pr-10"
+                      >
+                        <option value="" className="bg-neutral-900 text-gray-400">Select Category (Optional)</option>
+                        {existingCategories.map((cat) => (
+                          <option key={cat} value={cat} className="bg-neutral-900 text-white">
+                            {cat}
+                          </option>
+                        ))}
+                      </select>
+                      <ChevronDown className="absolute right-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
+                    </div>
+                  )}
+                </div>
+
+                {/* Asset Description */}
+                <div>
+                  <label className="block text-gray-300 text-sm font-semibold mb-2">Description (Optional)</label>
+                  <textarea
+                    placeholder="Enter asset details or description..."
+                    value={assetDescription}
+                    onChange={(e) => setAssetDescription(e.target.value)}
+                    disabled={uploading}
+                    rows={3}
+                    className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:border-blue-500 transition-colors resize-none text-sm"
+                  />
+                </div>
+
+                {/* Asset Type Selector */}
+                <div>
+                  <label className="block text-gray-300 text-sm font-semibold mb-2">Asset Type *</label>
+                  <div className="grid grid-cols-2 gap-4">
+                    <button
+                      type="button"
+                      onClick={() => setAssetType('image')}
+                      disabled={uploading}
+                      className={`py-3 rounded-xl border flex items-center justify-center gap-2 font-semibold transition-all ${
+                        assetType === 'image'
+                          ? 'bg-blue-600/25 border-blue-500 text-white shadow-lg shadow-blue-500/10'
+                          : 'bg-white/5 border-white/10 text-gray-400 hover:text-white'
+                      }`}
+                    >
+                      <Image className="w-5 h-5 text-sky-400" />
+                      Image
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setAssetType('video')}
+                      disabled={uploading}
+                      className={`py-3 rounded-xl border flex items-center justify-center gap-2 font-semibold transition-all ${
+                        assetType === 'video'
+                          ? 'bg-blue-600/25 border-blue-500 text-white shadow-lg shadow-blue-500/10'
+                          : 'bg-white/5 border-white/10 text-gray-400 hover:text-white'
+                      }`}
+                    >
+                      <Video className="w-5 h-5 text-emerald-400" />
+                      Video/Reel
+                    </button>
+                  </div>
+                </div>
+
+                {/* File Upload input */}
+                <div>
+                  <label className="block text-gray-300 text-sm font-semibold mb-2">Select File *</label>
+                  <input
+                    type="file"
+                    ref={fileInputRef}
+                    onChange={handleFileChange}
+                    required
+                    multiple
+                    disabled={uploading}
+                    accept={assetType === 'image' ? 'image/*' : 'video/*'}
+                    className="w-full text-sm text-gray-400 file:mr-4 file:py-2.5 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-white/10 file:text-white hover:file:bg-white/20 file:cursor-pointer file:transition-colors bg-white/5 border border-white/10 p-2.5 rounded-xl"
+                  />
+                  {selectedFiles.length > 0 && (
+                    <div className="mt-3 bg-black/20 border border-white/5 rounded-xl p-3 max-h-40 overflow-y-auto space-y-1.5 no-scrollbar animate-in fade-in slide-in-from-top-1.5 duration-200">
+                      <p className="text-gray-400 text-xs font-semibold mb-1">
+                        Selected Files ({selectedFiles.length}):
+                      </p>
+                      {selectedFiles.map((file, idx) => (
+                        <div key={`${file.name}-${idx}`} className="flex justify-between items-center text-xs text-gray-300">
+                          <span className="truncate max-w-[200px]" title={file.name}>
+                            {idx + 1}. {file.name}
+                          </span>
+                          <span className="text-gray-500 shrink-0 font-medium">
+                            ({(file.size / 1024 / 1024).toFixed(2)} MB)
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                {/* Upload Progress bars */}
+                {uploading && (
+                  <div className="space-y-3 mt-4 bg-black/30 p-4 rounded-xl border border-white/5 max-h-48 overflow-y-auto no-scrollbar animate-in fade-in slide-in-from-top-1.5 duration-200">
+                    <p className="text-xs text-gray-400 font-semibold flex items-center gap-1.5 mb-2">
+                      <Loader2 className="w-3.5 h-3.5 animate-spin text-blue-500" />
+                      Uploading files in parallel...
                     </p>
-                    {selectedFiles.map((file, idx) => (
-                      <div key={`${file.name}-${idx}`} className="flex justify-between items-center text-xs text-gray-300">
-                        <span className="truncate max-w-[200px]" title={file.name}>
-                          {idx + 1}. {file.name}
-                        </span>
-                        <span className="text-gray-500 shrink-0 font-medium">
-                          ({(file.size / 1024 / 1024).toFixed(2)} MB)
-                        </span>
-                      </div>
-                    ))}
+                    {selectedFiles.map((file, idx) => {
+                      const progress = filesProgress[file.name] || 0;
+                      return (
+                        <div key={`${file.name}-progress-${idx}`} className="space-y-1">
+                          <div className="flex items-center justify-between text-[11px]">
+                            <span className="text-gray-300 truncate max-w-[220px]" title={file.name}>
+                              {file.name}
+                            </span>
+                            <span className="font-bold text-white shrink-0">{progress}%</span>
+                          </div>
+                          <div className="w-full bg-white/5 h-1.5 rounded-full overflow-hidden">
+                            <div
+                              className="bg-blue-600 h-full rounded-full transition-all duration-300"
+                              style={{ width: `${progress}%` }}
+                            />
+                          </div>
+                        </div>
+                      );
+                    })}
                   </div>
                 )}
               </div>
 
-              {/* Upload Progress bars */}
-              {uploading && (
-                <div className="space-y-3 mt-4 bg-black/30 p-4 rounded-xl border border-white/5 max-h-48 overflow-y-auto no-scrollbar animate-in fade-in slide-in-from-top-1.5 duration-200">
-                  <p className="text-xs text-gray-400 font-semibold flex items-center gap-1.5 mb-2">
-                    <Loader2 className="w-3.5 h-3.5 animate-spin text-blue-500" />
-                    Uploading files in parallel...
-                  </p>
-                  {selectedFiles.map((file, idx) => {
-                    const progress = filesProgress[file.name] || 0;
-                    return (
-                      <div key={`${file.name}-progress-${idx}`} className="space-y-1">
-                        <div className="flex items-center justify-between text-[11px]">
-                          <span className="text-gray-300 truncate max-w-[220px]" title={file.name}>
-                            {file.name}
-                          </span>
-                          <span className="font-bold text-white shrink-0">{progress}%</span>
-                        </div>
-                        <div className="w-full bg-white/5 h-1.5 rounded-full overflow-hidden">
-                          <div
-                            className="bg-blue-600 h-full rounded-full transition-all duration-300"
-                            style={{ width: `${progress}%` }}
-                          />
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              )}
-
               {/* Action Buttons */}
-              <div className="flex items-center justify-end gap-3 pt-4 border-t border-white/10 mt-6">
+              <div className="flex items-center justify-end gap-3 px-6 py-4 border-t border-white/10 mt-auto shrink-0 bg-neutral-900">
                 <button
                   type="button"
                   onClick={() => setIsModalOpen(false)}
@@ -913,9 +919,9 @@ export default function ProjectAssetsDashboard() {
       {/* Edit Asset Modal */}
       {isEditModalOpen && editingAsset && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 backdrop-blur-sm p-4">
-          <div className="bg-neutral-900 border border-white/10 rounded-3xl w-full max-w-md overflow-hidden shadow-2xl animate-in fade-in zoom-in-95 duration-200">
+          <div className="bg-neutral-900 border border-white/10 rounded-3xl w-full max-w-md overflow-hidden shadow-2xl animate-in fade-in zoom-in-95 duration-200 flex flex-col max-h-[90vh]">
             {/* Modal Header */}
-            <div className="flex items-center justify-between px-6 py-4 border-b border-white/10">
+            <div className="flex items-center justify-between px-6 py-4 border-b border-white/10 shrink-0">
               <h2 className="text-xl font-bold text-white flex items-center gap-2">
                 <Pencil className="w-5 h-5 text-blue-500" />
                 Edit Asset Title
@@ -930,75 +936,80 @@ export default function ProjectAssetsDashboard() {
             </div>
 
             {/* Modal Form */}
-            <form onSubmit={handleUpdate} className="p-6 space-y-5">
-              {/* Asset Title */}
-              <div>
-                <label className="block text-gray-300 text-sm font-semibold mb-2">Asset Title *</label>
-                <input
-                  type="text"
-                  required
-                  value={editTitle}
-                  onChange={(e) => setEditTitle(e.target.value)}
-                  disabled={uploading}
-                  className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:border-blue-500 transition-colors"
-                />
-              </div>
-
-              {/* Asset Category */}
-              <div>
-                <label className="block text-gray-300 text-sm font-semibold mb-2 flex items-center justify-between">
-                  <span>Category (Optional)</span>
-                  <button
-                    type="button"
-                    onClick={() => setEditShowNewCategoryInput(!editShowNewCategoryInput)}
-                    className="text-xs text-blue-500 hover:text-blue-400 flex items-center gap-1 font-semibold"
-                  >
-                    {editShowNewCategoryInput ? "Select Existing" : "+ Add New"}
-                  </button>
-                </label>
-                
-                {editShowNewCategoryInput ? (
+            <form onSubmit={handleUpdate} className="flex flex-col flex-grow overflow-hidden">
+              <div className="p-6 space-y-5 overflow-y-auto flex-grow no-scrollbar">
+                {/* Asset Title */}
+                <div>
+                  <label className="block text-gray-300 text-sm font-semibold mb-2">Asset Title *</label>
                   <input
                     type="text"
                     required
-                    placeholder="Enter new category name..."
-                    value={editNewCategoryName}
-                    onChange={(e) => setEditNewCategoryName(e.target.value)}
+                    value={editTitle}
+                    onChange={(e) => setEditTitle(e.target.value)}
                     disabled={uploading}
-                    className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:border-blue-500 transition-colors"
+                    className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:border-blue-500 transition-colors text-sm"
                   />
-                ) : (
-                  <select
-                    value={editCategory}
-                    onChange={(e) => setEditCategory(e.target.value)}
-                    disabled={uploading}
-                    className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-blue-500 transition-colors cursor-pointer"
-                  >
-                    <option value="" className="bg-neutral-900 text-gray-400">Select Category (Optional)</option>
-                    {existingCategories.map((cat) => (
-                      <option key={cat} value={cat} className="bg-neutral-900 text-white">
-                        {cat}
-                      </option>
-                    ))}
-                  </select>
-                )}
-              </div>
+                </div>
 
-              {/* Asset Description */}
-              <div>
-                <label className="block text-gray-300 text-sm font-semibold mb-2">Description (Optional)</label>
-                <textarea
-                  placeholder="Enter asset details or description..."
-                  value={editDescription}
-                  onChange={(e) => setEditDescription(e.target.value)}
-                  disabled={uploading}
-                  rows={3}
-                  className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:border-blue-500 transition-colors resize-none"
-                />
+                {/* Asset Category */}
+                <div>
+                  <label className="block text-gray-300 text-sm font-semibold mb-2 flex items-center justify-between">
+                    <span>Category (Optional)</span>
+                    <button
+                      type="button"
+                      onClick={() => setEditShowNewCategoryInput(!editShowNewCategoryInput)}
+                      className="text-[11px] bg-blue-500/10 hover:bg-blue-500/20 text-blue-500 hover:text-blue-400 px-2.5 py-1 rounded-lg border border-blue-500/20 hover:border-blue-500/30 transition-all font-semibold select-none"
+                    >
+                      {editShowNewCategoryInput ? "Select Existing" : "+ Add New"}
+                    </button>
+                  </label>
+                  
+                  {editShowNewCategoryInput ? (
+                    <input
+                      type="text"
+                      required
+                      placeholder="Enter new category name..."
+                      value={editNewCategoryName}
+                      onChange={(e) => setEditNewCategoryName(e.target.value)}
+                      disabled={uploading}
+                      className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:border-blue-500 transition-colors text-sm"
+                    />
+                  ) : (
+                    <div className="relative">
+                      <select
+                        value={editCategory}
+                        onChange={(e) => setEditCategory(e.target.value)}
+                        disabled={uploading}
+                        className="w-full appearance-none bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-blue-500 transition-colors cursor-pointer text-sm pr-10"
+                      >
+                        <option value="" className="bg-neutral-900 text-gray-400">Select Category (Optional)</option>
+                        {existingCategories.map((cat) => (
+                          <option key={cat} value={cat} className="bg-neutral-900 text-white">
+                            {cat}
+                          </option>
+                        ))}
+                      </select>
+                      <ChevronDown className="absolute right-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
+                    </div>
+                  )}
+                </div>
+
+                {/* Asset Description */}
+                <div>
+                  <label className="block text-gray-300 text-sm font-semibold mb-2">Description (Optional)</label>
+                  <textarea
+                    placeholder="Enter asset details or description..."
+                    value={editDescription}
+                    onChange={(e) => setEditDescription(e.target.value)}
+                    disabled={uploading}
+                    rows={3}
+                    className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:border-blue-500 transition-colors resize-none text-sm"
+                  />
+                </div>
               </div>
 
               {/* Action Buttons */}
-              <div className="flex items-center justify-end gap-3 pt-4 border-t border-white/10 mt-6">
+              <div className="flex items-center justify-end gap-3 px-6 py-4 border-t border-white/10 mt-auto shrink-0 bg-neutral-900">
                 <button
                   type="button"
                   onClick={() => setIsEditModalOpen(false)}

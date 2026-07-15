@@ -233,42 +233,42 @@ export function ProjectVideosClient({
   return (
     <div className="container mx-auto px-4 lg:px-8 relative z-10 pt-32 pb-24 animate-in fade-in duration-300">
       {/* Back Link */}
-      <Link 
-        href="/" 
-        className="inline-flex items-center gap-2 text-muted-foreground hover:text-primary transition-colors mb-6 group text-sm"
-      >
-        <ChevronLeft className="w-4 h-4 group-hover:-translate-x-1 transition-transform" />
-        <span>{projectsPageContent.backLinkText}</span>
-      </Link>
+      {project.slug?.toLowerCase() !== 'myaiads' && (
+        <Link 
+          href="/" 
+          className="inline-flex items-center gap-2 text-muted-foreground hover:text-primary transition-colors mb-6 group text-sm"
+        >
+          <ChevronLeft className="w-4 h-4 group-hover:-translate-x-1 transition-transform" />
+          <span>{projectsPageContent.backLinkText}</span>
+        </Link>
+      )}
 
       {/* Heading Section */}
-      <div className="flex flex-col md:flex-row md:items-end justify-between mb-10 gap-6 border-b border-border/40 pb-6">
-        <div className="max-w-3xl flex items-center gap-4">
-          {project.logoUrl ? (
-            <img
-              src={project.logoUrl}
-              alt=""
-              className="w-12 h-12 rounded-xl object-cover border border-border/50"
-            />
-          ) : (
-            <div className="inline-flex items-center justify-center w-12 h-12 rounded-xl bg-primary/10 text-primary border border-primary/20">
-              <Box className="w-6 h-6" />
+      {project.slug?.toLowerCase() !== 'myaiads' && (
+        <div className="flex flex-col md:flex-row md:items-end justify-between mb-10 gap-6 border-b border-border/40 pb-6">
+          <div className="max-w-3xl flex items-center gap-4">
+            {project.logoUrl ? (
+              <img
+                src={project.logoUrl}
+                alt=""
+                className="w-12 h-12 rounded-xl object-cover border border-border/50"
+              />
+            ) : (
+              <div className="inline-flex items-center justify-center w-12 h-12 rounded-xl bg-primary/10 text-primary border border-primary/20">
+                <Box className="w-6 h-6" />
+              </div>
+            )}
+            <div>
+              <h1 className="text-3xl lg:text-5xl font-bold tracking-tight text-foreground">
+                {project.name} <span className="text-primary">Videos & Reels</span>
+              </h1>
+              <p className="text-sm text-muted-foreground mt-2">
+                Browse video reels created for {project.name}.
+              </p>
             </div>
-          )}
-          <div>
-            <h1 className="text-3xl lg:text-5xl font-bold tracking-tight text-foreground">
-              {project.slug?.toLowerCase() === 'myaiads' ? (
-                <>UGC <span className="text-primary">Videos Sample</span></>
-              ) : (
-                <>{project.name} <span className="text-primary">Videos & Reels</span></>
-              )}
-            </h1>
-            <p className="text-sm text-muted-foreground mt-2">
-              Browse video reels created for {project.slug?.toLowerCase() === 'myaiads' ? 'MyAiAds' : project.name}.
-            </p>
           </div>
         </div>
-      </div>
+      )}
 
       {/* Category Tabs */}
       {categories.length > 2 && (
@@ -303,18 +303,16 @@ export function ProjectVideosClient({
           {filteredAssets.map((asset) => (
             <div
               key={asset._id}
-              className="group bg-card/30 border border-border/40 hover:border-primary/40 rounded-2xl overflow-hidden flex flex-col transition-all duration-300 shadow-md hover:shadow-xl relative"
+              onClick={() => selectAsset(asset)}
+              className="group bg-card/30 border border-border/40 hover:border-primary/40 rounded-2xl overflow-hidden flex flex-col cursor-pointer transition-all duration-300 shadow-md hover:shadow-xl relative"
             >
               <div 
-                className="aspect-[9/12] relative bg-black/50 overflow-hidden flex items-center justify-center border-b border-border/40"
-                onMouseEnter={() => handleMouseEnterVideo(asset._id)}
-                onMouseLeave={() => handleMouseLeaveVideo(asset._id)}
+                className="aspect-[9/12] relative bg-black/50 overflow-hidden flex items-center justify-center"
               >
                 <div className="w-full h-full relative">
                   <video
-                    ref={(el) => { videoRefs.current[asset._id] = el }}
                     src={asset.url}
-                    className="w-full h-full object-cover opacity-80"
+                    className="w-full h-full object-cover"
                     muted
                     loop
                     playsInline
@@ -340,19 +338,6 @@ export function ProjectVideosClient({
                   <Share2 className="w-3.5 h-3.5" />
                 </button>
               </div>
-
-              <div className="p-4 flex-1 flex flex-col justify-between">
-                <div>
-                  <h3 className="text-foreground font-bold text-sm truncate" title={asset.title}>
-                    {asset.title || 'Untitled Asset'}
-                  </h3>
-                  {asset.description && (
-                    <p className="text-[11px] text-muted-foreground mt-1 line-clamp-2 leading-relaxed" title={asset.description}>
-                      {asset.description}
-                    </p>
-                  )}
-                </div>
-              </div>
             </div>
           ))}
         </div>
@@ -366,10 +351,19 @@ export function ProjectVideosClient({
         >
           <div 
             onClick={(e) => e.stopPropagation()}
-            className="w-full h-full flex flex-col md:flex-row bg-neutral-950 border-0 md:border md:border-white/10 rounded-none md:rounded-3xl overflow-hidden shadow-2xl relative transition-all duration-300 cursor-default md:max-w-2xl md:h-[75vh]"
+            className="w-full h-full flex flex-col bg-neutral-950 border-0 md:border md:border-white/10 rounded-none md:rounded-3xl overflow-hidden shadow-2xl relative transition-all duration-300 cursor-default md:max-w-md md:h-[80vh]"
           >
-            {/* Left side: Media Player */}
-            <div className="flex-1 bg-black flex items-center justify-center relative h-[65vh] md:h-full">
+            {/* Close Button */}
+            <button
+              onClick={closeAssetModal}
+              className="absolute top-4 right-4 z-50 p-2 bg-black/60 hover:bg-black/85 border border-white/10 text-gray-400 hover:text-white rounded-full transition-colors focus:outline-none"
+              title="Close"
+            >
+              <X className="w-5 h-5" />
+            </button>
+
+            {/* Media Player */}
+            <div className="w-full h-full bg-black flex items-center justify-center relative">
               <div className="w-full h-full relative flex items-center justify-center">
                 {/* Vertical Snapping Container */}
                 <div 
@@ -419,106 +413,29 @@ export function ProjectVideosClient({
 
                         {/* Controls overlay */}
                         {isActiveReel && (
-                          <>
+                          <div className="absolute bottom-6 right-6 flex flex-col gap-3 z-20">
+                            <button
+                              onClick={(e) => copyShareLink(e, videoAsset._id)}
+                              className="p-3 bg-black/60 border border-white/10 rounded-full text-white hover:bg-neutral-800 transition-colors"
+                              title="Share Link"
+                            >
+                              <Share2 className="w-5 h-5" />
+                            </button>
+
                             <button
                               onClick={(e) => { e.stopPropagation(); setIsMuted(!isMuted); }}
-                              className="absolute bottom-6 right-6 p-3 bg-black/60 border border-white/10 rounded-full text-white hover:bg-neutral-800 transition-colors z-20"
+                              className="p-3 bg-black/60 border border-white/10 rounded-full text-white hover:bg-neutral-800 transition-colors"
+                              title={isMuted ? "Unmute" : "Mute"}
                             >
                               {isMuted ? <VolumeX className="w-5 h-5" /> : <Volume2 className="w-5 h-5" />}
                             </button>
-
-                            {/* Info Card Overlay inside player */}
-                            <div className="absolute left-6 bottom-6 text-white max-w-[280px] z-20 bg-gradient-to-t from-black/80 to-transparent p-4 rounded-xl border border-white/5 backdrop-blur-sm">
-                              <span className="px-2 py-0.5 rounded bg-primary/20 border border-primary/20 text-primary text-[10px] font-bold uppercase tracking-wider">
-                                Reel {idx + 1} of {filteredAssets.length}
-                              </span>
-                              <h4 className="font-bold text-sm truncate mt-2">{videoAsset.title}</h4>
-                              <p className="text-gray-400 text-xs truncate mt-1">@{project.name}</p>
-                            </div>
-                          </>
+                          </div>
                         )}
                       </div>
                     );
                   })}
                 </div>
-
-                {/* Desktop navigation tracking hint */}
-                <div className="hidden md:flex absolute right-6 top-1/2 -translate-y-1/2 flex-col gap-2 z-20">
-                  <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground text-center mb-1">
-                    Scroll
-                  </span>
-                  <div className="w-1.5 h-16 bg-white/10 rounded-full relative overflow-hidden">
-                    <div 
-                      className="bg-primary absolute left-0 w-full rounded-full transition-all duration-300"
-                      style={{ 
-                        height: `${100 / filteredAssets.length}%`, 
-                        top: `${(activeReelIndex / filteredAssets.length) * 100}%` 
-                      }}
-                    />
-                  </div>
-                </div>
               </div>
-            </div>
-
-            {/* Right side: Asset information details sidebar */}
-            <div className="w-full md:w-72 bg-neutral-900 border-t md:border-t-0 md:border-l border-white/10 p-5 flex flex-col justify-between h-[35vh] md:h-full relative">
-              <button
-                onClick={closeAssetModal}
-                className="absolute top-3 right-3 z-50 p-1.5 bg-white/5 hover:bg-white/10 border border-white/10 text-gray-400 hover:text-white rounded-lg transition-colors focus:outline-none"
-                title="Close"
-              >
-                <X className="w-4 h-4" />
-              </button>
-
-              <div>
-                <div className="flex items-center gap-2 mb-4 bg-white/5 p-3 rounded-xl border border-white/5">
-                  {project.logoUrl ? (
-                    <img
-                      src={project.logoUrl}
-                      alt=""
-                      className="w-8 h-8 rounded-lg object-cover border border-white/10"
-                    />
-                  ) : (
-                    <Box className="w-8 h-8 bg-primary/10 rounded-lg flex items-center justify-center text-primary border border-primary/20" />
-                  )}
-                  <div className="flex flex-col">
-                    <span className="text-xs text-muted-foreground">Associated Project</span>
-                    <span className="text-white font-bold text-sm leading-tight truncate">{project.name || 'Unknown Project'}</span>
-                  </div>
-                </div>
-
-                <h3 className="text-white text-lg font-bold mb-1">
-                  {selectedAsset.title || 'Untitled Resource'}
-                </h3>
-                
-                <p className="text-xs text-muted-foreground mb-4">
-                  Added on {new Date(selectedAsset.createdAt).toLocaleDateString()}
-                </p>
-
-                <div className="bg-primary/5 border border-primary/20 rounded-xl p-3 text-xs text-primary/80 leading-relaxed mb-4">
-                  💡 <strong>Tip:</strong> Scroll or drag vertically inside the video box to flip through different reels!
-                </div>
-              </div>
-
-              {/* Share & Download buttons */}
-              <div className="space-y-3 pt-4 border-t border-white/5">
-                <button
-                  onClick={(e) => copyShareLink(e, selectedAsset._id)}
-                  className="w-full flex items-center justify-center gap-2 py-3 bg-primary text-black font-bold rounded-xl transition-all hover:bg-primary/90 hover:scale-[1.02]"
-                >
-                  <Share2 className="w-4 h-4" />
-                  <span>{isShareFeedback ? 'Copied URL!' : 'Share Asset Link'}</span>
-                </button>
-
-                <button
-                  onClick={() => handleDownload(selectedAsset.url, selectedAsset.title)}
-                  className="w-full flex items-center justify-center gap-2 py-3 bg-white/5 hover:bg-white/10 border border-white/10 hover:border-white/20 text-white font-semibold rounded-xl transition-all text-sm"
-                >
-                  <Download className="w-4 h-4" />
-                  <span>Download</span>
-                </button>
-              </div>
-
             </div>
           </div>
         </div>,
