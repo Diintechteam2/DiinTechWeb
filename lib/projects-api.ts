@@ -14,6 +14,8 @@ export interface ProjectAsset {
   type: "image" | "video"
   url: string
   key: string
+  category?: string
+  description?: string
   createdAt: string
 }
 

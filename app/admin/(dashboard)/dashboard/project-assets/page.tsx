@@ -35,6 +35,8 @@ interface ProjectAsset {
   type: 'image' | 'video';
   url: string;
   key: string;
+  category?: string;
+  description?: string;
   createdAt: string;
 }
 
@@ -61,6 +63,16 @@ export default function ProjectAssetsDashboard() {
   const [assetTitle, setAssetTitle] = useState('');
   const [assetType, setAssetType] = useState<'image' | 'video'>('image');
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
+
+  const [assetCategory, setAssetCategory] = useState('');
+  const [newCategoryName, setNewCategoryName] = useState('');
+  const [showNewCategoryInput, setShowNewCategoryInput] = useState(false);
+  const [assetDescription, setAssetDescription] = useState('');
+
+  const [editCategory, setEditCategory] = useState('');
+  const [editNewCategoryName, setEditNewCategoryName] = useState('');
+  const [editShowNewCategoryInput, setEditShowNewCategoryInput] = useState(false);
+  const [editDescription, setEditDescription] = useState('');
   
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -180,7 +192,9 @@ export default function ProjectAssetsDashboard() {
           title: finalTitle,
           type: file.type.startsWith('video/') ? 'video' : 'image',
           url: fileUrl,
-          key: key
+          key: key,
+          category: showNewCategoryInput ? newCategoryName.trim() : assetCategory,
+          description: assetDescription.trim()
         });
       };
 
@@ -240,6 +254,10 @@ export default function ProjectAssetsDashboard() {
   const openEditModal = (asset: ProjectAsset) => {
     setEditingAsset(asset);
     setEditTitle(asset.title);
+    setEditCategory(asset.category || '');
+    setEditDescription(asset.description || '');
+    setEditShowNewCategoryInput(false);
+    setEditNewCategoryName('');
     setIsEditModalOpen(true);
   };
 
@@ -254,7 +272,9 @@ export default function ProjectAssetsDashboard() {
     try {
       setUploading(true);
       await api.put(`project-assets/${editingAsset._id}`, {
-        title: editTitle
+        title: editTitle,
+        category: editShowNewCategoryInput ? editNewCategoryName.trim() : editCategory,
+        description: editDescription.trim()
       });
 
       alert('Asset updated successfully!');
@@ -284,6 +304,10 @@ export default function ProjectAssetsDashboard() {
     setAssetType('image');
     setSelectedFiles([]);
     setFilesProgress({});
+    setAssetCategory('');
+    setNewCategoryName('');
+    setShowNewCategoryInput(false);
+    setAssetDescription('');
     if (fileInputRef.current) fileInputRef.current.value = '';
   };
 
@@ -313,6 +337,12 @@ export default function ProjectAssetsDashboard() {
 
   const imageAssets = filteredAssets.filter(a => a.type === 'image');
   const videoAssets = filteredAssets.filter(a => a.type === 'video');
+
+  const existingCategories = Array.from(new Set(
+    assets
+      .map(a => a.category)
+      .filter((c): c is string => typeof c === 'string' && c.trim() !== '')
+  ));
 
   const activeProjectDetails = projects.find(p => p._id === activeProjectId);
 
@@ -355,9 +385,21 @@ export default function ProjectAssetsDashboard() {
       </div>
 
       <div className="p-4 flex-1 flex flex-col justify-between">
-        <h3 className="text-white font-bold truncate text-base mb-1" title={asset.title}>
-          {asset.title || 'Untitled Asset'}
-        </h3>
+        <div>
+          <h3 className="text-white font-bold truncate text-base mb-1" title={asset.title}>
+            {asset.title || 'Untitled Asset'}
+          </h3>
+          {asset.category && (
+            <span className="inline-block bg-blue-600/25 border border-blue-500/20 text-blue-400 text-[10px] font-bold px-2 py-0.5 rounded-md mt-1 capitalize">
+              {asset.category}
+            </span>
+          )}
+          {asset.description && (
+            <p className="text-gray-400 text-xs mt-2 line-clamp-2 leading-relaxed" title={asset.description}>
+              {asset.description}
+            </p>
+          )}
+        </div>
 
         {/* Actions Button Group */}
         <div className="flex items-center justify-between gap-3 mt-4 pt-3 border-t border-white/5">
@@ -688,6 +730,59 @@ export default function ProjectAssetsDashboard() {
                 />
               </div>
 
+              {/* Asset Category */}
+              <div>
+                <label className="block text-gray-300 text-sm font-semibold mb-2 flex items-center justify-between">
+                  <span>Category (Optional)</span>
+                  <button
+                    type="button"
+                    onClick={() => setShowNewCategoryInput(!showNewCategoryInput)}
+                    className="text-xs text-blue-500 hover:text-blue-400 flex items-center gap-1 font-semibold"
+                  >
+                    {showNewCategoryInput ? "Select Existing" : "+ Add New"}
+                  </button>
+                </label>
+                
+                {showNewCategoryInput ? (
+                  <input
+                    type="text"
+                    required
+                    placeholder="Enter new category name..."
+                    value={newCategoryName}
+                    onChange={(e) => setNewCategoryName(e.target.value)}
+                    disabled={uploading}
+                    className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:border-blue-500 transition-colors"
+                  />
+                ) : (
+                  <select
+                    value={assetCategory}
+                    onChange={(e) => setAssetCategory(e.target.value)}
+                    disabled={uploading}
+                    className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-blue-500 transition-colors cursor-pointer"
+                  >
+                    <option value="" className="bg-neutral-900 text-gray-400">Select Category (Optional)</option>
+                    {existingCategories.map((cat) => (
+                      <option key={cat} value={cat} className="bg-neutral-900 text-white">
+                        {cat}
+                      </option>
+                    ))}
+                  </select>
+                )}
+              </div>
+
+              {/* Asset Description */}
+              <div>
+                <label className="block text-gray-300 text-sm font-semibold mb-2">Description (Optional)</label>
+                <textarea
+                  placeholder="Enter asset details or description..."
+                  value={assetDescription}
+                  onChange={(e) => setAssetDescription(e.target.value)}
+                  disabled={uploading}
+                  rows={3}
+                  className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:border-blue-500 transition-colors resize-none"
+                />
+              </div>
+
               {/* Asset Type Selector */}
               <div>
                 <label className="block text-gray-300 text-sm font-semibold mb-2">Asset Type *</label>
@@ -843,6 +938,59 @@ export default function ProjectAssetsDashboard() {
                   onChange={(e) => setEditTitle(e.target.value)}
                   disabled={uploading}
                   className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:border-blue-500 transition-colors"
+                />
+              </div>
+
+              {/* Asset Category */}
+              <div>
+                <label className="block text-gray-300 text-sm font-semibold mb-2 flex items-center justify-between">
+                  <span>Category (Optional)</span>
+                  <button
+                    type="button"
+                    onClick={() => setEditShowNewCategoryInput(!editShowNewCategoryInput)}
+                    className="text-xs text-blue-500 hover:text-blue-400 flex items-center gap-1 font-semibold"
+                  >
+                    {editShowNewCategoryInput ? "Select Existing" : "+ Add New"}
+                  </button>
+                </label>
+                
+                {editShowNewCategoryInput ? (
+                  <input
+                    type="text"
+                    required
+                    placeholder="Enter new category name..."
+                    value={editNewCategoryName}
+                    onChange={(e) => setEditNewCategoryName(e.target.value)}
+                    disabled={uploading}
+                    className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:border-blue-500 transition-colors"
+                  />
+                ) : (
+                  <select
+                    value={editCategory}
+                    onChange={(e) => setEditCategory(e.target.value)}
+                    disabled={uploading}
+                    className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-blue-500 transition-colors cursor-pointer"
+                  >
+                    <option value="" className="bg-neutral-900 text-gray-400">Select Category (Optional)</option>
+                    {existingCategories.map((cat) => (
+                      <option key={cat} value={cat} className="bg-neutral-900 text-white">
+                        {cat}
+                      </option>
+                    ))}
+                  </select>
+                )}
+              </div>
+
+              {/* Asset Description */}
+              <div>
+                <label className="block text-gray-300 text-sm font-semibold mb-2">Description (Optional)</label>
+                <textarea
+                  placeholder="Enter asset details or description..."
+                  value={editDescription}
+                  onChange={(e) => setEditDescription(e.target.value)}
+                  disabled={uploading}
+                  rows={3}
+                  className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:border-blue-500 transition-colors resize-none"
                 />
               </div>
 

@@ -33,9 +33,18 @@ export default async function ProjectReelsPage({ params }: ProjectReelsPageProps
     (asset) => asset.project?.slug.toLowerCase() === slug.toLowerCase()
   )
 
+  const isMyAiAds = slug.toLowerCase() === "myaiads"
+  const projectNameOverride = isMyAiAds ? "MyAiAds" : project.name
+
   return (
     <main className="min-h-screen bg-background relative overflow-hidden flex flex-col">
-      <Header content={headerContent} />
+      <Header 
+        content={headerContent} 
+        projectName={projectNameOverride}
+        projectLogo={project.logoUrl}
+        projectWebsiteUrl={project.websiteUrl}
+        isProjectView={true}
+      />
       
       {/* Background Elements */}
       <div className="absolute inset-0 z-0 grid-bg opacity-30" />
@@ -51,7 +60,12 @@ export default async function ProjectReelsPage({ params }: ProjectReelsPageProps
         />
       </div>
 
-      <Footer content={footerContent} settings={globalSettings} />
+      <Footer 
+        content={footerContent} 
+        settings={globalSettings} 
+        projectName={projectNameOverride}
+        isProjectView={true}
+      />
     </main>
   )
 }

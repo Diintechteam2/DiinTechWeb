@@ -9,13 +9,25 @@ import type { GlobalSettingsContent } from "@/lib/settings-api"
 interface FooterProps {
   content: FooterContent
   settings: GlobalSettingsContent
+  projectName?: string
+  isProjectView?: boolean
 }
 
 function normalizeCopyright(text: string) {
   return text.replace("{{year}}", String(new Date().getFullYear())).replace("(c)", "©")
 }
 
-export function Footer({ content, settings }: FooterProps) {
+export function Footer({ content, settings, projectName, isProjectView }: FooterProps) {
+  if (isProjectView) {
+    return (
+      <footer className="bg-card border-t border-border">
+        <div className="container mx-auto px-4 lg:px-8 py-8 flex justify-center items-center">
+          <p className="text-sm text-muted-foreground">powered by {projectName}</p>
+        </div>
+      </footer>
+    )
+  }
+
   const addressLines = settings.address.split("\n").filter(Boolean)
   const socialLinks = [
     { href: settings.socialLinks.linkedin, icon: Linkedin, label: "LinkedIn" },

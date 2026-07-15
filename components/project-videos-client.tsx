@@ -29,6 +29,7 @@ export function ProjectVideosClient({
   projectsPageContent
 }: ProjectVideosClientProps) {
   const [selectedAsset, setSelectedAsset] = useState<ProjectAsset | null>(null);
+  const [selectedCategory, setSelectedCategory] = useState<string>("All");
   const [isMuted, setIsMuted] = useState(true);
   const [isShareFeedback, setIsShareFeedback] = useState(false);
   const [isPaused, setIsPaused] = useState(false);
@@ -44,6 +45,16 @@ export function ProjectVideosClient({
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const isScrollingRef = useRef(false);
   const isProgrammaticScrollRef = useRef(false);
+
+  const categories = ["All", ...Array.from(new Set(
+    assets
+      .map(a => a.category)
+      .filter((c): c is string => typeof c === 'string' && c.trim() !== '')
+  ))];
+
+  const filteredAssets = selectedCategory.toLowerCase() === "all"
+    ? assets
+    : assets.filter(a => a.category?.toLowerCase() === selectedCategory.toLowerCase());
 
   // Prevent background body scroll when asset modal is open
   useEffect(() => {
@@ -137,7 +148,7 @@ export function ProjectVideosClient({
   useEffect(() => {
     if (selectedAsset && selectedAsset.type === 'video' && scrollContainerRef.current) {
       const container = scrollContainerRef.current;
-      const index = assets.findIndex(a => a._id === selectedAsset._id);
+      const index = filteredAssets.findIndex(a => a._id === selectedAsset._id);
       if (index !== -1) {
         const containerHeight = container.clientHeight;
         const targetScrollTop = index * containerHeight;
@@ -154,7 +165,7 @@ export function ProjectVideosClient({
         }
       }
     }
-  }, [selectedAsset?._id, assets.length]);
+  }, [selectedAsset?._id, filteredAssets.length]);
 
   // Intercept wheel events to allow scrolling only one video at a time on desktop
   useEffect(() => {
@@ -167,15 +178,15 @@ export function ProjectVideosClient({
       if (isScrollingRef.current) return;
 
       const direction = e.deltaY > 0 ? 1 : -1;
-      const index = assets.findIndex(a => a._id === selectedAsset._id);
+      const index = filteredAssets.findIndex(a => a._id === selectedAsset._id);
       
       if (index === -1) return;
 
       const nextIndex = index + direction;
-      if (nextIndex >= 0 && nextIndex < assets.length) {
+      if (nextIndex >= 0 && nextIndex < filteredAssets.length) {
         isScrollingRef.current = true;
         isProgrammaticScrollRef.current = true;
-        const targetAsset = assets[nextIndex];
+        const targetAsset = filteredAssets[nextIndex];
         setSelectedAsset(targetAsset);
         setIsPaused(false);
 
@@ -191,7 +202,7 @@ export function ProjectVideosClient({
     return () => {
       container.removeEventListener('wheel', handleWheel);
     };
-  }, [selectedAsset?._id, assets]);
+  }, [selectedAsset?._id, filteredAssets]);
 
   // Handle vertical scroll snapping in reels container to update the active reel
   const handleScroll = (e: React.UIEvent<HTMLDivElement>) => {
@@ -203,8 +214,8 @@ export function ProjectVideosClient({
     if (containerHeight === 0) return;
 
     const idx = Math.round(scrollTop / containerHeight);
-    if (idx >= 0 && idx < assets.length) {
-      const activeVideoAsset = assets[idx];
+    if (idx >= 0 && idx < filteredAssets.length) {
+      const activeVideoAsset = filteredAssets[idx];
       if (activeVideoAsset && activeVideoAsset._id !== selectedAsset?._id) {
         setSelectedAsset(activeVideoAsset);
         setIsPaused(false);
@@ -216,7 +227,7 @@ export function ProjectVideosClient({
     setIsPaused(prev => !prev);
   };
 
-  const activeReelIndex = selectedAsset ? assets.findIndex(a => a._id === selectedAsset._id) : -1;
+  const activeReelIndex = selectedAsset ? filteredAssets.findIndex(a => a._id === selectedAsset._id) : -1;
 
   return (
     <div className="container mx-auto px-4 lg:px-8 relative z-10 pt-32 pb-24 animate-in fade-in duration-300">
@@ -245,28 +256,53 @@ export function ProjectVideosClient({
           )}
           <div>
             <h1 className="text-3xl lg:text-5xl font-bold tracking-tight text-foreground">
-              {project.name} <span className="text-primary">Videos & Reels</span>
+              {project.slug?.toLowerCase() === 'myaiads' ? (
+                <>UGC <span className="text-primary">Videos Sample</span></>
+              ) : (
+                <>{project.name} <span className="text-primary">Videos & Reels</span></>
+              )}
             </h1>
             <p className="text-sm text-muted-foreground mt-2">
-              Browse video reels created for {project.name}.
+              Browse video reels created for {project.slug?.toLowerCase() === 'myaiads' ? 'MyAiAds' : project.name}.
             </p>
           </div>
         </div>
       </div>
 
+      {/* Category Tabs */}
+      {categories.length > 2 && (
+        <div className="flex flex-wrap items-center gap-2 mb-8 bg-neutral-900/40 p-2 rounded-2xl border border-white/5 self-start">
+          {categories.map((category) => (
+            <button
+              key={category}
+              onClick={() => {
+                setSelectedCategory(category);
+                setSelectedAsset(null);
+              }}
+              className={`px-4 py-2 text-xs font-semibold rounded-xl transition-all border capitalize ${
+                selectedCategory.toLowerCase() === category.toLowerCase()
+                  ? 'bg-primary text-black border-primary font-bold shadow-lg shadow-primary/10'
+                  : 'bg-white/5 border-white/5 text-gray-400 hover:text-white hover:bg-white/10'
+              }`}
+            >
+              {category}
+            </button>
+          ))}
+        </div>
+      )}
+
       {/* Grid List of Videos */}
-      {assets.length === 0 ? (
+      {filteredAssets.length === 0 ? (
         <div className="text-center py-20 bg-card/20 border border-border/30 rounded-2xl">
           <VideoIcon className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
-          <p className="text-muted-foreground font-medium">No video reels found for this project</p>
+          <p className="text-muted-foreground font-medium">No video reels found for this category</p>
         </div>
       ) : (
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3">
-          {assets.map((asset) => (
+          {filteredAssets.map((asset) => (
             <div
               key={asset._id}
-              onClick={() => selectAsset(asset)}
-              className="group bg-card/30 border border-border/40 hover:border-primary/40 rounded-2xl overflow-hidden flex flex-col cursor-pointer transition-all duration-300 shadow-md hover:shadow-xl relative"
+              className="group bg-card/30 border border-border/40 hover:border-primary/40 rounded-2xl overflow-hidden flex flex-col transition-all duration-300 shadow-md hover:shadow-xl relative"
             >
               <div 
                 className="aspect-[9/12] relative bg-black/50 overflow-hidden flex items-center justify-center border-b border-border/40"
@@ -305,9 +341,16 @@ export function ProjectVideosClient({
               </div>
 
               <div className="p-4 flex-1 flex flex-col justify-between">
-                <h3 className="text-foreground font-bold text-sm truncate" title={asset.title}>
-                  {asset.title || 'Untitled Asset'}
-                </h3>
+                <div>
+                  <h3 className="text-foreground font-bold text-sm truncate" title={asset.title}>
+                    {asset.title || 'Untitled Asset'}
+                  </h3>
+                  {asset.description && (
+                    <p className="text-[11px] text-muted-foreground mt-1 line-clamp-2 leading-relaxed" title={asset.description}>
+                      {asset.description}
+                    </p>
+                  )}
+                </div>
               </div>
             </div>
           ))}
@@ -342,7 +385,7 @@ export function ProjectVideosClient({
                       scrollbar-width: none !important;
                     }
                   `}} />
-                  {assets.map((videoAsset, idx) => {
+                  {filteredAssets.map((videoAsset, idx) => {
                     const isActiveReel = videoAsset._id === selectedAsset._id;
                     return (
                       <div 
@@ -386,7 +429,7 @@ export function ProjectVideosClient({
                             {/* Info Card Overlay inside player */}
                             <div className="absolute left-6 bottom-6 text-white max-w-[280px] z-20 bg-gradient-to-t from-black/80 to-transparent p-4 rounded-xl border border-white/5 backdrop-blur-sm">
                               <span className="px-2 py-0.5 rounded bg-primary/20 border border-primary/20 text-primary text-[10px] font-bold uppercase tracking-wider">
-                                Reel {idx + 1} of {assets.length}
+                                Reel {idx + 1} of {filteredAssets.length}
                               </span>
                               <h4 className="font-bold text-sm truncate mt-2">{videoAsset.title}</h4>
                               <p className="text-gray-400 text-xs truncate mt-1">@{project.name}</p>
@@ -407,8 +450,8 @@ export function ProjectVideosClient({
                     <div 
                       className="bg-primary absolute left-0 w-full rounded-full transition-all duration-300"
                       style={{ 
-                        height: `${100 / assets.length}%`, 
-                        top: `${(activeReelIndex / assets.length) * 100}%` 
+                        height: `${100 / filteredAssets.length}%`, 
+                        top: `${(activeReelIndex / filteredAssets.length) * 100}%` 
                       }}
                     />
                   </div>
