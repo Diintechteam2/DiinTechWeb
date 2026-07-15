@@ -4,6 +4,7 @@ export interface Project {
   logoUrl?: string
   lastUpdated?: string
   websiteUrl?: string
+  categories?: string[]
   content: {
     introduction: string
     informationCollect: {

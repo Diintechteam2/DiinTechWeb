@@ -36,6 +36,7 @@ function normalizeProject(project: Partial<Project>): Project {
     logoUrl: project.logoUrl || "",
     lastUpdated: project.lastUpdated || "",
     websiteUrl: project.websiteUrl || "",
+    categories: project.categories || [],
     content: {
       introduction: project.content?.introduction || "",
       informationCollect: {

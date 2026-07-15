@@ -46,11 +46,12 @@ export function ProjectVideosClient({
   const isScrollingRef = useRef(false);
   const isProgrammaticScrollRef = useRef(false);
 
-  const categories = ["All", ...Array.from(new Set(
-    assets
+  const categories = ["All", ...Array.from(new Set([
+    ...(project.categories || []),
+    ...assets
       .map(a => a.category)
       .filter((c): c is string => typeof c === 'string' && c.trim() !== '')
-  ))];
+  ]))];
 
   const filteredAssets = selectedCategory.toLowerCase() === "all"
     ? assets

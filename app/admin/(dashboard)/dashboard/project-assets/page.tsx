@@ -26,6 +26,7 @@ interface Project {
   name: string;
   slug: string;
   logoUrl?: string;
+  categories?: string[];
 }
 
 interface ProjectAsset {
@@ -338,13 +339,15 @@ export default function ProjectAssetsDashboard() {
   const imageAssets = filteredAssets.filter(a => a.type === 'image');
   const videoAssets = filteredAssets.filter(a => a.type === 'video');
 
-  const existingCategories = Array.from(new Set(
-    assets
+  const activeProjectDetails = projects.find(p => p._id === activeProjectId);
+
+  const existingCategories = Array.from(new Set([
+    ...(activeProjectDetails?.categories || []),
+    ...assets
+      .filter(a => a.project?._id === activeProjectId)
       .map(a => a.category)
       .filter((c): c is string => typeof c === 'string' && c.trim() !== '')
-  ));
-
-  const activeProjectDetails = projects.find(p => p._id === activeProjectId);
+  ]));
 
   const renderAssetCard = (asset: ProjectAsset) => (
     <div
